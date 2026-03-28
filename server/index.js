@@ -26,12 +26,14 @@ export function createApp(db, pipeline = null) {
   return app
 }
 
-// Only start the server when run directly (not imported in tests)
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const { openDb } = await import('./db.js')
-  const { runPipeline } = await import('./scheduler.js')
+  const { runPipeline, startScheduler } = await import('./scheduler.js')
   const db = openDb()
   const app = createApp(db, runPipeline)
   const PORT = process.env.PORT || 3001
-  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`)
+    startScheduler(db)
+  })
 }

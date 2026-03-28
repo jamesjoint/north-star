@@ -1,0 +1,12 @@
+{
+  "background": "I am a product and partnerships leader with 8+ years of experience in regulated industries (fintech, insurance, healthcare). I excel at driving outcomes through influence without direct authority — building alignment across engineering, legal, compliance, and external partners. My BD track record includes closing multi-million-dollar platform deals. I hold an MBA. I am based in New York City and open to remote or hybrid roles. I am looking for senior individual contributor or director-level product or partnerships roles.",
+  "weights": {
+    "core_mechanism": 1,
+    "product_depth": 1,
+    "regulated_complexity": 1,
+    "bd_track_record": 1,
+    "mba_preference": 1,
+    "domain_gap": 1,
+    "gap_bridgeability": 1
+  }
+}
