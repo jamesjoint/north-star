@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest'
+import { test, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import path from 'path'
 import { parse } from '../../../server/scrapers/weworkremotely.js'
@@ -18,3 +18,5 @@ test('parse extracts job fields from HTML', () => {
   })
   expect(jobs[0].url).toMatch(/^https:\/\/weworkremotely\.com/)
 })
+
+test('returns empty array for unrecognized HTML', () => { expect(parse('<html></html>')).toEqual([]) })

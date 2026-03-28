@@ -18,7 +18,7 @@ export function parse(html) {
       title,
       company,
       location: region || 'Remote',
-      remote: 'remote',
+      remote: 'remote', // WeWorkRemotely only lists remote roles
       url: href.startsWith('http') ? href : `${BASE}${href}`,
       source: 'weworkremotely',
       posted_at: null,
