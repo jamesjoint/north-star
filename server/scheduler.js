@@ -20,8 +20,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ALL_SCRAPERS = [weworkremotely, nyfa, ixda, themuse, backstage, web3career, staffmeup, creatoreconomyjobs, linkedin]
 
 function loadProfile() {
-  const raw = readFileSync(path.join(__dirname, 'profile.json'), 'utf8')
-  return JSON.parse(raw)
+  try {
+    const raw = readFileSync(path.join(__dirname, 'profile.json'), 'utf8')
+    return JSON.parse(raw)
+  } catch (err) {
+    throw new Error('[pipeline] Could not load profile.json: ' + err.message)
+  }
 }
 
 export async function runPipeline(db) {
@@ -38,7 +42,7 @@ export async function runPipeline(db) {
       const result = await scoreJob(job, profile)
       updateScore(db, id, result.aggregate, { ...result.dimensions, summary: result.summary })
       scored++
-      await sleep(500) // rate limit Claude API calls
+      if (id !== newIds[newIds.length - 1]) await sleep(500) // rate limit Claude API calls
     } catch (err) {
       console.error(`[pipeline] Scoring failed for ${id}:`, err.message)
     }
