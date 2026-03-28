@@ -48,6 +48,8 @@ describe('upsertJob', () => {
     const row = getJobById(db, id)
     expect(row.title).toBe('Senior PM')
     expect(row.score_aggregate).toBe(7.5)
+    expect(typeof row.score_dimensions).toBe('object')
+    expect(row.score_dimensions.core_mechanism.score).toBe(8)
   })
 })
 
@@ -58,7 +60,7 @@ describe('getAllJobs', () => {
 
   test('returns jobs sorted by score_aggregate descending, nulls last', () => {
     const id1 = upsertJob(db, { ...JOB, url: 'https://x.com/1', title: 'Low' })
-    const id2 = upsertJob(db, { ...JOB, url: 'https://x.com/2', title: 'Unscored' })
+    upsertJob(db, { ...JOB, url: 'https://x.com/2', title: 'Unscored' })
     const id3 = upsertJob(db, { ...JOB, url: 'https://x.com/3', title: 'High' })
     updateScore(db, id1, 3.0, {})
     updateScore(db, id3, 9.0, {})

@@ -45,8 +45,17 @@ export function upsertJob(db, job) {
       posted_at = excluded.posted_at,
       description = excluded.description,
       fetched_at = excluded.fetched_at
+      -- score_aggregate and score_dimensions intentionally excluded: preserved across re-scrapes
   `).run({ ...job, id, fetched_at: new Date().toISOString() })
   return id
+}
+
+function deserializeRow(row) {
+  if (!row) return row
+  return {
+    ...row,
+    score_dimensions: row.score_dimensions ? JSON.parse(row.score_dimensions) : null
+  }
 }
 
 export function updateScore(db, id, scoreAggregate, scoreDimensions) {
@@ -58,11 +67,11 @@ export function updateScore(db, id, scoreAggregate, scoreDimensions) {
 export function getAllJobs(db) {
   return db.prepare(`
     SELECT * FROM jobs ORDER BY score_aggregate DESC NULLS LAST, fetched_at DESC
-  `).all()
+  `).all().map(deserializeRow)
 }
 
 export function getJobById(db, id) {
-  return db.prepare('SELECT * FROM jobs WHERE id = ?').get(id)
+  return deserializeRow(db.prepare('SELECT * FROM jobs WHERE id = ?').get(id))
 }
 
 export function markSeen(db, id) {
