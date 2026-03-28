@@ -13,7 +13,6 @@ export default defineConfig({
     setupFiles: ['./tests/setup.js'],
     environmentMatchGlobs: [
       ['tests/client/**', 'jsdom'],
-      ['tests/client/**/*.test.jsx', 'jsdom'],
       ['tests/server/**', 'node'],
     ],
   }
