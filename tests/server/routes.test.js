@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
 import request from 'supertest'
-import { openDb, upsertJob, updateScore } from '../../server/db.js'
+import { openDb, upsertJob } from '../../server/db.js'
 
 // We'll import createApp from server/index.js (not the running server)
 let createApp, db
