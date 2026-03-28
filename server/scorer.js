@@ -52,7 +52,12 @@ ${job.description || '(no description provided)'}`
     system: systemPrompt,
   })
 
-  const parsed = JSON.parse(response.content[0].text)
+  let parsed
+  try {
+    parsed = JSON.parse(response.content[0].text)
+  } catch (e) {
+    throw new Error('Scorer: invalid JSON from Claude: ' + e.message)
+  }
   const aggregate = computeAggregate(parsed.dimensions, profile.weights)
 
   return {

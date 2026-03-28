@@ -21,7 +21,7 @@ const MOCK_SCORE_RESPONSE = {
     domain_gap: { score: 4, reasoning: 'No crypto background.' },
     gap_bridgeability: { score: 7, reasoning: 'Crypto is learnable from fintech base.' },
   },
-  aggregate: 6.57,
+  aggregate: 999,
   summary: 'Strong fit on influence and regulated complexity. Domain gap in crypto is bridgeable.'
 }
 
@@ -46,7 +46,7 @@ describe('scoreJob', () => {
       MOCK_PROFILE
     )
     expect(result.dimensions.core_mechanism.score).toBe(8)
-    expect(result.aggregate).toBe(6.57)
+    expect(result.aggregate).toBeCloseTo(6.57, 2)
     expect(result.summary).toContain('influence')
   })
 
