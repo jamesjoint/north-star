@@ -11,7 +11,7 @@ export async function runAllScrapers(db, scrapers) {
         if (!alreadyExists) newIds.push(id)
       }
     } catch (err) {
-      console.error(`Scraper failed:`, err.message)
+      console.error(`Scraper failed:`, err)
     }
   }
   return newIds

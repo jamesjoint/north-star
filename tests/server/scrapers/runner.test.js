@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { openDb, getJobById } from '../../../server/db.js'
 import { runAllScrapers } from '../../../server/scrapers/index.js'
 
