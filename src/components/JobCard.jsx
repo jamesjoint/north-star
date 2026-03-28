@@ -14,7 +14,7 @@ export default function JobCard({ job, onSelect, selected }) {
   return (
     <article
       role="article"
-      onClick={() => onSelect(job.id)}
+      onClick={() => onSelect?.(job.id)}
       style={{
         border: selected ? '2px solid #3b82f6' : '1px solid #e5e7eb',
         borderRadius: 8,

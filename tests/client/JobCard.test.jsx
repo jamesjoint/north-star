@@ -9,7 +9,7 @@ const JOB = {
   location: 'New York, NY',
   remote: 'hybrid',
   source: 'weworkremotely',
-  score_aggregate: 7.5,
+  score_aggregate: 7,
   score_dimensions: JSON.stringify({
     core_mechanism: { score: 8, reasoning: 'Influence-based role.' },
     summary: 'Strong fit overall.'
@@ -37,7 +37,7 @@ test('does not show "New" badge when seen is 1', () => {
 
 test('score badge shows aggregate score', () => {
   render(<JobCard job={JOB} onSelect={vi.fn()} />)
-  expect(screen.getByText('7.5')).toBeInTheDocument()
+  expect(screen.getByText('7.0')).toBeInTheDocument()
 })
 
 test('calls onSelect with job id when clicked', () => {
@@ -45,4 +45,9 @@ test('calls onSelect with job id when clicked', () => {
   render(<JobCard job={JOB} onSelect={onSelect} />)
   fireEvent.click(screen.getByRole('article'))
   expect(onSelect).toHaveBeenCalledWith('abc123')
+})
+
+test('score badge shows dash when score is null', () => {
+  render(<JobCard job={{ ...JOB, score_aggregate: null }} onSelect={vi.fn()} />)
+  expect(screen.getByText('–')).toBeInTheDocument()
 })
