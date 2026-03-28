@@ -11,7 +11,14 @@ const DIMENSION_LABELS = {
 const DIMENSION_ORDER = Object.keys(DIMENSION_LABELS)
 
 export default function JobDetail({ job, onClose }) {
-  const dims = job.score_dimensions ? JSON.parse(job.score_dimensions) : {}
+  let dims = {}
+  if (job.score_dimensions) {
+    try {
+      dims = JSON.parse(job.score_dimensions)
+    } catch {
+      dims = {}
+    }
+  }
   const summary = dims.summary || null
 
   return (

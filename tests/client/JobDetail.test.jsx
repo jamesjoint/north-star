@@ -34,6 +34,10 @@ test('renders all 7 dimension labels', () => {
   render(<JobDetail job={JOB} onClose={vi.fn()} />)
   expect(screen.getByText(/core.mechanism/i)).toBeInTheDocument()
   expect(screen.getByText(/product.depth/i)).toBeInTheDocument()
+  expect(screen.getByText(/regulated.complexity/i)).toBeInTheDocument()
+  expect(screen.getByText(/bd.track.record/i)).toBeInTheDocument()
+  expect(screen.getByText(/mba.preference/i)).toBeInTheDocument()
+  expect(screen.getByText(/domain.gap/i)).toBeInTheDocument()
   expect(screen.getByText(/gap.bridgeability/i)).toBeInTheDocument()
 })
 
