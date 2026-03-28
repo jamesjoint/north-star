@@ -10,10 +10,11 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    environment: 'jsdom',
     setupFiles: ['./tests/setup.js'],
     environmentMatchGlobs: [
-      ['tests/client/**', 'jsdom'],
-      ['tests/server/**', 'node'],
+      ['tests/client/**/*.{test,spec}.jsx', 'jsdom'],
+      ['tests/server/**/*.{test,spec}.js', 'node'],
     ],
   }
 })
