@@ -26,7 +26,7 @@ describe('themuse scraper', () => {
 
     const { scrape } = await import('../../../server/scrapers/themuse.js')
     const jobs = await scrape()
-    expect(jobs).toHaveLength(1)
+    expect(jobs).toHaveLength(2)
     expect(jobs[0]).toMatchObject({
       title: 'Head of Product',
       company: 'StartupCo',
@@ -34,5 +34,31 @@ describe('themuse scraper', () => {
       source: 'themuse',
     })
     expect(jobs[0].url).toContain('themuse.com')
+    expect(jobs[0].description).toBe('Lead product at a fast-growing startup.')
+  })
+
+  test('paginates correctly across multiple pages', async () => {
+    axios.get
+      .mockResolvedValueOnce({
+        data: {
+          results: [{ name: 'Job A', company: { name: 'Co A' }, locations: [{ name: 'NYC' }], refs: { landing_page: 'https://www.themuse.com/jobs/a' }, publication_date: null, contents: '' }],
+          page_count: 2,
+        }
+      })
+      .mockResolvedValueOnce({
+        data: {
+          results: [{ name: 'Job B', company: { name: 'Co B' }, locations: [{ name: 'Remote' }], refs: { landing_page: 'https://www.themuse.com/jobs/b' }, publication_date: null, contents: '' }],
+          page_count: 2,
+        }
+      })
+      // Second category pages (return empty to stop quickly)
+      .mockResolvedValue({ data: { results: [], page_count: 1 } })
+
+    const { scrape } = await import('../../../server/scrapers/themuse.js?p=' + Date.now())
+    const jobs = await scrape()
+    // Should have 2 jobs from first category (page 1 + page 2) + 0 from second
+    expect(jobs.length).toBeGreaterThanOrEqual(2)
+    expect(jobs.map(j => j.title)).toContain('Job A')
+    expect(jobs.map(j => j.title)).toContain('Job B')
   })
 })

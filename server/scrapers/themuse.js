@@ -27,13 +27,7 @@ export async function scrape() {
       await sleep(1000)
     }
   }
-  // Deduplicate by URL
-  const seen = new Set()
-  return all.filter(j => {
-    if (!j.url || seen.has(j.url)) return false
-    seen.add(j.url)
-    return true
-  })
+  return all
 }
 
 function detectRemote(location = '') {
