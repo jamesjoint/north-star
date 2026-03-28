@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import { chromium } from 'playwright'
+import { detectRemote } from './utils.js'
 
 export function parse(html) {
   const $ = cheerio.load(html)
@@ -30,6 +31,7 @@ export async function scrape() {
   const page = await browser.newPage()
   try {
     await page.goto('https://www.backstage.com/casting/', { waitUntil: 'networkidle' })
+    await page.waitForSelector('.job-listing-item', { timeout: 10000 }).catch(() => {})
     const html = await page.content()
     return parse(html)
   } finally {
@@ -37,9 +39,3 @@ export async function scrape() {
   }
 }
 
-function detectRemote(location = '') {
-  const l = location.toLowerCase()
-  if (l.includes('remote')) return 'remote'
-  if (l.includes('hybrid')) return 'hybrid'
-  return 'onsite'
-}

@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import { chromium } from 'playwright'
+import { detectRemote } from './utils.js'
 
 export function parse(html) {
   const $ = cheerio.load(html)
@@ -39,9 +40,3 @@ export async function scrape() {
   }
 }
 
-function detectRemote(location = '') {
-  const l = location.toLowerCase()
-  if (l.includes('remote')) return 'remote'
-  if (l.includes('hybrid')) return 'hybrid'
-  return 'onsite'
-}

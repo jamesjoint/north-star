@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio'
 import axios from 'axios'
+import { detectRemote } from './utils.js'
 
 const BASE = 'https://ixda.org'
 
@@ -35,9 +36,3 @@ export async function scrape() {
   return parse(data)
 }
 
-function detectRemote(location = '') {
-  const l = location.toLowerCase()
-  if (l.includes('remote')) return 'remote'
-  if (l.includes('hybrid')) return 'hybrid'
-  return 'onsite'
-}

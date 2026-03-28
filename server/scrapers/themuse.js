@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { detectRemote } from './utils.js'
 
 const BASE = 'https://www.themuse.com/api/public/jobs'
 const CATEGORIES = ['Product Management', 'Business Development']
@@ -28,13 +29,6 @@ export async function scrape() {
     }
   }
   return all
-}
-
-function detectRemote(location = '') {
-  const l = location.toLowerCase()
-  if (l.includes('remote') || l.includes('flexible')) return 'remote'
-  if (l.includes('hybrid')) return 'hybrid'
-  return 'onsite'
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
