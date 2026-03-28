@@ -28,7 +28,7 @@ const MOCK_SCORE_RESPONSE = {
 describe('scoreJob', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(Anthropic).mockImplementation(function() {
+    Anthropic.mockImplementation(function() {
       return {
         messages: {
           create: vi.fn().mockResolvedValue({
@@ -60,7 +60,6 @@ describe('scoreJob', () => {
       { title: 'PM', description: 'desc' },
       heavyWeights
     )
-    // core_mechanism (score 8) is double-weighted — aggregate should differ from 6.57
     const dims = MOCK_SCORE_RESPONSE.dimensions
     const expected = (
       dims.core_mechanism.score * 2 +
