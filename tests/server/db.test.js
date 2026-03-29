@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
-import { openDb, makeId, upsertJob, updateScore, getAllJobs, getJobById, markSeen } from '../../server/db.js'
+import { openDb, makeId, upsertJob, updateScore, getAllJobs, getJobById, getUnscoredIds, markSeen } from '../../server/db.js'
 
 const JOB = {
   title: 'Product Manager',
@@ -68,6 +68,25 @@ describe('getAllJobs', () => {
     expect(jobs[0].title).toBe('High')
     expect(jobs[1].title).toBe('Low')
     expect(jobs[2].title).toBe('Unscored')
+  })
+})
+
+describe('getUnscoredIds', () => {
+  let db
+  beforeEach(() => { db = openDb(':memory:') })
+  afterEach(() => { db.close() })
+
+  test('returns ids of jobs with null score_aggregate', () => {
+    const id1 = upsertJob(db, { ...JOB, url: 'https://x.com/1' })
+    const id2 = upsertJob(db, { ...JOB, url: 'https://x.com/2' })
+    updateScore(db, id1, 7.5, {})
+    expect(getUnscoredIds(db)).toEqual([id2])
+  })
+
+  test('returns empty array when all jobs are scored', () => {
+    const id = upsertJob(db, JOB)
+    updateScore(db, id, 5.0, {})
+    expect(getUnscoredIds(db)).toEqual([])
   })
 })
 

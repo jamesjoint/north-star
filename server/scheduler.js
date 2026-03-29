@@ -4,10 +4,9 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { runAllScrapers } from './scrapers/index.js'
 import { scoreJob } from './scorer.js'
-import { updateScore, getJobById } from './db.js'
+import { updateScore, getJobById, getUnscoredIds } from './db.js'
 
 import * as weworkremotely from './scrapers/weworkremotely.js'
-import * as nyfa from './scrapers/nyfa.js'
 import * as ixda from './scrapers/ixda.js'
 import * as themuse from './scrapers/themuse.js'
 import * as backstage from './scrapers/backstage.js'
@@ -17,7 +16,7 @@ import * as creatoreconomyjobs from './scrapers/creatoreconomyjobs.js'
 import * as linkedin from './scrapers/linkedin.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ALL_SCRAPERS = [weworkremotely, nyfa, ixda, themuse, backstage, web3career, staffmeup, creatoreconomyjobs, linkedin]
+const ALL_SCRAPERS = [weworkremotely, ixda, themuse, backstage, web3career, staffmeup, creatoreconomyjobs, linkedin]
 
 function loadProfile() {
   try {
@@ -32,23 +31,27 @@ export async function runPipeline(db) {
   console.log('[pipeline] Starting scrape...')
   const profile = loadProfile()
   const newIds = await runAllScrapers(db, ALL_SCRAPERS)
-  console.log(`[pipeline] Scraped ${newIds.length} new jobs. Scoring...`)
+
+  // Include any previously-scraped jobs that never got scored (e.g. scorer was broken)
+  const backlogIds = getUnscoredIds(db).filter(id => !newIds.includes(id))
+  const toScore = [...newIds, ...backlogIds]
+  console.log(`[pipeline] ${newIds.length} new, ${backlogIds.length} backlog unscored. Scoring ${toScore.length} total...`)
 
   let scored = 0
-  for (const id of newIds) {
+  for (const id of toScore) {
     try {
       const job = getJobById(db, id)
       if (!job) continue
       const result = await scoreJob(job, profile)
       updateScore(db, id, result.aggregate, { ...result.dimensions, summary: result.summary })
       scored++
-      if (id !== newIds[newIds.length - 1]) await sleep(500) // rate limit Claude API calls
+      if (id !== toScore[toScore.length - 1]) await sleep(500)
     } catch (err) {
       console.error(`[pipeline] Scoring failed for ${id}:`, err.message)
     }
   }
 
-  console.log(`[pipeline] Done. ${newIds.length} scraped, ${scored} scored.`)
+  console.log(`[pipeline] Done. ${newIds.length} scraped, ${scored}/${toScore.length} scored.`)
   return { scraped: newIds.length, scored }
 }
 

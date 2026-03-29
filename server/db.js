@@ -74,6 +74,10 @@ export function getJobById(db, id) {
   return deserializeRow(db.prepare('SELECT * FROM jobs WHERE id = ?').get(id))
 }
 
+export function getUnscoredIds(db) {
+  return db.prepare('SELECT id FROM jobs WHERE score_aggregate IS NULL').all().map(r => r.id)
+}
+
 export function markSeen(db, id) {
   db.prepare('UPDATE jobs SET seen = 1 WHERE id = ?').run(id)
 }
