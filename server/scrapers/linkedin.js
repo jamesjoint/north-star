@@ -17,10 +17,14 @@ export async function scrape() {
 
   let result
   try {
-    result = await toolset.executeAction(LINKEDIN_ACTION, {
-      keywords: 'product manager OR partnerships manager OR head of product OR business development',
-      location: 'New York, NY',
-      count: 50,
+    result = await toolset.executeAction({
+      action: LINKEDIN_ACTION,
+      params: {
+        keywords: 'product manager OR partnerships manager OR head of product OR business development',
+        location: 'New York, NY',
+        count: 50,
+      },
+      entityId: 'default',
     })
   } catch (err) {
     console.error('LinkedIn scraper: executeAction failed:', err.message)

@@ -54,7 +54,11 @@ ${job.description || '(no description provided)'}`
 
   let parsed
   try {
-    parsed = JSON.parse(response.content[0].text)
+    let text = response.content[0].text.trim()
+    if (text.startsWith('```')) {
+      text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+    }
+    parsed = JSON.parse(text)
   } catch (e) {
     throw new Error('Scorer: invalid JSON from Claude: ' + e.message)
   }
