@@ -40,16 +40,20 @@ export async function runPipeline(db) {
   console.log(`[pipeline] ${newIds.length} new, ${backlogIds.length} backlog unscored. Scoring ${toScore.length} total...`)
 
   let scored = 0
-  for (const id of toScore) {
+  for (let i = 0; i < toScore.length; i++) {
+    const id = toScore[i]
     try {
       const job = getJobById(db, id)
-      if (!job) continue
+      if (!job) { console.warn(`[scorer] Job ${id} not found in db, skipping`); continue }
+      console.log(`[scorer] Scoring job ${i + 1} of ${toScore.length}: ${job.company} - ${job.title}`)
       const result = await scoreJob(job, profile)
       updateScore(db, id, result.aggregate, { ...result.dimensions, summary: result.summary })
       scored++
-      if (id !== toScore[toScore.length - 1]) await sleep(500)
+      console.log(`[scorer] Done ${i + 1}/${toScore.length} — score: ${result.aggregate}`)
+      if (i < toScore.length - 1) await sleep(500)
     } catch (err) {
-      console.error(`[pipeline] Scoring failed for ${id}:`, err.message)
+      console.error(`[scorer] FAILED job ${i + 1}/${toScore.length} id=${id}:`, err.message)
+      console.error(err.stack)
     }
   }
 

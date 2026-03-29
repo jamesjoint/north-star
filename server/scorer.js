@@ -54,20 +54,16 @@ ${job.description || '(no description provided)'}`
 
   let parsed
   try {
-    let text = response.content[0].text.trim()
-    // Strip markdown fences (handles preamble text, \r\n, and plain \n)
-    const fenceMatch = text.match(/```(?:json)?\s*[\r\n]+([\s\S]*?)[\r\n]+```/)
-    if (fenceMatch) {
-      text = fenceMatch[1].trim()
-    } else {
-      // Fallback: extract the outermost {...} block
-      const start = text.indexOf('{')
-      const end = text.lastIndexOf('}')
-      if (start !== -1 && end !== -1) text = text.slice(start, end + 1)
-    }
-    parsed = JSON.parse(text)
+    const raw = response.content[0].text
+    // Strip backtick fences, then pull out the outermost {...} to drop any preamble text
+    const stripped = raw.replace(/```json|```/g, '')
+    const start = stripped.indexOf('{')
+    const end = stripped.lastIndexOf('}')
+    const clean = start !== -1 && end !== -1 ? stripped.slice(start, end + 1) : stripped.trim()
+    parsed = JSON.parse(clean)
   } catch (e) {
-    throw new Error('Scorer: invalid JSON from Claude: ' + e.message)
+    const preview = response.content[0]?.text?.slice(0, 200)
+    throw new Error(`Scorer: invalid JSON from Claude: ${e.message} | raw: ${preview}`)
   }
   const aggregate = computeAggregate(parsed.dimensions, profile.weights)
 

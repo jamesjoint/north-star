@@ -81,13 +81,12 @@ describe('scoreJob', () => {
     expect(result.dimensions.core_mechanism.score).toBe(8)
   })
 
-  test('falls back to brace extraction when no fence is present', async () => {
-    const preamble = 'Sure, here you go: '
+  test('handles plain JSON response with no fences', async () => {
     Anthropic.mockImplementation(function() {
       return {
         messages: {
           create: vi.fn().mockResolvedValue({
-            content: [{ text: preamble + JSON.stringify(MOCK_SCORE_RESPONSE) }]
+            content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }]
           })
         }
       }
