@@ -3,4 +3,13 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 
 chromium.use(StealthPlugin())
 
-export { chromium }
+export async function launch() {
+  return chromium.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+    ],
+  })
+}

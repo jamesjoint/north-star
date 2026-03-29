@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { chromium } from './browser.js'
+import { launch } from './browser.js'
 import { detectRemote } from './utils.js'
 
 export function parse(html) {
@@ -28,7 +28,7 @@ export function parse(html) {
 }
 
 export async function scrape() {
-  const browser = await chromium.launch()
+  const browser = await launch()
   const page = await browser.newPage()
   try {
     await page.goto('https://creatoreconomyjobs.co/', { waitUntil: 'networkidle' })

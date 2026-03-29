@@ -65,6 +65,22 @@ describe('scoreJob', () => {
     expect(result.dimensions.core_mechanism.score).toBe(8)
   })
 
+  test('strips fences when Claude adds preamble text before the fence', async () => {
+    const preamble = 'Here is the evaluation:\n\n'
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: preamble + '```json\n' + JSON.stringify(MOCK_SCORE_RESPONSE) + '\n```' }]
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
+    expect(result.dimensions.core_mechanism.score).toBe(8)
+  })
+
   test('recalculates aggregate using profile weights', async () => {
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const heavyWeights = { ...MOCK_PROFILE, weights: {

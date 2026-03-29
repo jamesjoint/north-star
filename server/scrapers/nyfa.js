@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { chromium } from './browser.js'
+import { launch } from './browser.js'
 import { detectRemote } from './utils.js'
 
 const BASE = 'https://www.nyfa.org'
@@ -30,7 +30,7 @@ export function parse(html) {
 }
 
 export async function scrape() {
-  const browser = await chromium.launch()
+  const browser = await launch()
   const page = await browser.newPage()
   try {
     await page.goto(`${BASE}/jobs/`, { waitUntil: 'networkidle' })
