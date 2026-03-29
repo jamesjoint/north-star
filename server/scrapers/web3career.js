@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import { chromium } from 'playwright'
+import { chromium } from './browser.js'
 import { detectRemote } from './utils.js'
 
 export function parse(html) {

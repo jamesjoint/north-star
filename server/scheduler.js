@@ -7,6 +7,7 @@ import { scoreJob } from './scorer.js'
 import { updateScore, getJobById, getUnscoredIds } from './db.js'
 
 import * as weworkremotely from './scrapers/weworkremotely.js'
+import * as nyfa from './scrapers/nyfa.js'
 import * as ixda from './scrapers/ixda.js'
 import * as themuse from './scrapers/themuse.js'
 import * as backstage from './scrapers/backstage.js'
@@ -14,9 +15,10 @@ import * as web3career from './scrapers/web3career.js'
 import * as staffmeup from './scrapers/staffmeup.js'
 import * as creatoreconomyjobs from './scrapers/creatoreconomyjobs.js'
 import * as linkedin from './scrapers/linkedin.js'
+import * as jsearch from './scrapers/jsearch.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ALL_SCRAPERS = [weworkremotely, ixda, themuse, backstage, web3career, staffmeup, creatoreconomyjobs, linkedin]
+const ALL_SCRAPERS = [weworkremotely, nyfa, ixda, themuse, backstage, web3career, staffmeup, creatoreconomyjobs, linkedin, jsearch]
 
 function loadProfile() {
   try {

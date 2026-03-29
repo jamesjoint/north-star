@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import axios from 'axios'
+import { chromium } from './browser.js'
 import { detectRemote } from './utils.js'
 
 const BASE = 'https://www.nyfa.org'
@@ -30,9 +30,14 @@ export function parse(html) {
 }
 
 export async function scrape() {
-  const { data } = await axios.get(`${BASE}/jobs/?_page=1`, {
-    headers: { 'User-Agent': 'Mozilla/5.0' }
-  })
-  return parse(data)
+  const browser = await chromium.launch()
+  const page = await browser.newPage()
+  try {
+    await page.goto(`${BASE}/jobs/`, { waitUntil: 'networkidle' })
+    await page.waitForSelector('.job-listing', { timeout: 15000 }).catch(() => {})
+    const html = await page.content()
+    return parse(html)
+  } finally {
+    await browser.close()
+  }
 }
-
