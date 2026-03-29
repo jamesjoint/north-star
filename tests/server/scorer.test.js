@@ -81,6 +81,22 @@ describe('scoreJob', () => {
     expect(result.dimensions.core_mechanism.score).toBe(8)
   })
 
+  test('falls back to brace extraction when no fence is present', async () => {
+    const preamble = 'Sure, here you go: '
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: preamble + JSON.stringify(MOCK_SCORE_RESPONSE) }]
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
+    expect(result.dimensions.core_mechanism.score).toBe(8)
+  })
+
   test('recalculates aggregate using profile weights', async () => {
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const heavyWeights = { ...MOCK_PROFILE, weights: {

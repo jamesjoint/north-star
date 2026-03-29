@@ -55,9 +55,16 @@ ${job.description || '(no description provided)'}`
   let parsed
   try {
     let text = response.content[0].text.trim()
-    // Extract content from ```json ... ``` fences wherever they appear in the response
-    const fenceMatch = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/)
-    if (fenceMatch) text = fenceMatch[1].trim()
+    // Strip markdown fences (handles preamble text, \r\n, and plain \n)
+    const fenceMatch = text.match(/```(?:json)?\s*[\r\n]+([\s\S]*?)[\r\n]+```/)
+    if (fenceMatch) {
+      text = fenceMatch[1].trim()
+    } else {
+      // Fallback: extract the outermost {...} block
+      const start = text.indexOf('{')
+      const end = text.lastIndexOf('}')
+      if (start !== -1 && end !== -1) text = text.slice(start, end + 1)
+    }
     parsed = JSON.parse(text)
   } catch (e) {
     throw new Error('Scorer: invalid JSON from Claude: ' + e.message)

@@ -31,7 +31,7 @@ export async function scrape() {
   const browser = await launch()
   const page = await browser.newPage()
   try {
-    await page.goto('https://web3.career/', { waitUntil: 'networkidle' })
+    await page.goto('https://web3.career/', { waitUntil: 'domcontentloaded' })
     await page.waitForSelector('.job-card', { timeout: 10000 })
     const html = await page.content()
     return parse(html)

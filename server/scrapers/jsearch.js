@@ -27,6 +27,7 @@ export async function scrape() {
           'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
         },
       })
+      console.log(`[jsearch] query="${query}" status=${data.status} jobs=${(data.data || []).length}`)
       for (const job of (data.data || [])) {
         const url = job.job_apply_link
         if (!url || seen.has(url)) continue

@@ -1,8 +1,9 @@
 import { detectRemote } from './utils.js'
 
-// Action name — verify in your Composio dashboard under LinkedIn actions.
-// Override via LINKEDIN_ACTION env var if the default doesn't match your account.
-const LINKEDIN_ACTION = process.env.LINKEDIN_ACTION || 'LINKEDIN_SEARCH_JOB_POSTINGS'
+// Action name — check your Composio dashboard under LinkedIn actions.
+// Common values: LINKEDIN_SEARCH_JOBS, LINKEDIN_SEARCH_JOB_POSTINGS
+// Override via LINKEDIN_ACTION env var.
+const LINKEDIN_ACTION = process.env.LINKEDIN_ACTION || 'LINKEDIN_SEARCH_JOBS'
 
 export async function scrape() {
   // Dynamically import composio-core to handle the deprecated package gracefully
@@ -15,6 +16,7 @@ export async function scrape() {
     return []
   }
 
+  console.log(`[linkedin] Using action: ${LINKEDIN_ACTION}`)
   let result
   try {
     result = await toolset.executeAction({
