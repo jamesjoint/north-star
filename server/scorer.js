@@ -56,7 +56,7 @@ ${job.description || '(no description provided)'}`
   try {
     let text = response.content[0].text.trim()
     if (text.startsWith('```')) {
-      text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '')
+      text = text.replace(/^```[\w]*\s*\r?\n/, '').replace(/\r?\n```\s*$/, '').trim()
     }
     parsed = JSON.parse(text)
   } catch (e) {

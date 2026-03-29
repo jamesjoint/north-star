@@ -1,4 +1,6 @@
-import 'dotenv/config'
+import { configDotenv } from 'dotenv'
+// override: true ensures .env values win over any ambient env vars (e.g. Claude Code's session key)
+configDotenv({ override: true })
 import express from 'express'
 import { getAllJobs, getJobById, markSeen } from './db.js'
 
