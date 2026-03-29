@@ -26,7 +26,7 @@ export default function App() {
         <div style={{ flex: selectedJob ? '0 0 420px' : 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {refreshing && <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: 40 }}>Loading jobs…</p>}
           {error && <p style={{ color: '#ef4444', textAlign: 'center', marginTop: 40 }}>Error: {error}</p>}
-          {!loading && !refreshing && !error && jobs.length === 0 && (
+          {!refreshing && !error && jobs.length === 0 && (
             <p style={{ color: '#9ca3af', textAlign: 'center', marginTop: 40 }}>
               hi ashley, you're a superstar and one day you won't need this
             </p>
