@@ -16,9 +16,12 @@ export function useJobs() {
   const mountedRef = useRef(true)
   const timerIdRef = useRef(null)
 
-  useEffect(() => () => {
-    mountedRef.current = false
-    clearTimeout(timerIdRef.current)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      clearTimeout(timerIdRef.current)
+    }
   }, [])
 
   const load = useCallback(async () => {
@@ -27,7 +30,7 @@ export function useJobs() {
       setError(null)
       const data = await fetchJobs()
       if (!mountedRef.current) return
-      setJobs(data)
+      setJobs([...data].sort((a, b) => (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1)))
       setLastRefreshed(new Date())
     } catch (err) {
       if (!mountedRef.current) return
