@@ -91,6 +91,10 @@ export function markSeen(db, id) {
   db.prepare('UPDATE jobs SET seen = 1 WHERE id = ?').run(id)
 }
 
+export function markAllSeen(db) {
+  db.prepare('UPDATE jobs SET seen = 1 WHERE seen = 0').run()
+}
+
 export function updateJobTracking(db, id, updates) {
   const allowed = ['status', 'follow_up_date', 'notes', 'applied_date']
   const fields = []

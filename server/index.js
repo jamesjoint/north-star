@@ -2,7 +2,7 @@ import { configDotenv } from 'dotenv'
 // override: true ensures .env values win over any ambient env vars (e.g. Claude Code's session key)
 configDotenv({ override: true })
 import express from 'express'
-import { getAllJobs, getJobById, markSeen, updateJobTracking } from './db.js'
+import { getAllJobs, getJobById, markSeen, markAllSeen, updateJobTracking } from './db.js'
 
 export function createApp(db, pipeline = null) {
   const app = express()
@@ -10,6 +10,7 @@ export function createApp(db, pipeline = null) {
 
   app.get('/api/jobs', (req, res) => {
     const jobs = getAllJobs(db)
+    markAllSeen(db)
     res.json(jobs)
   })
 
