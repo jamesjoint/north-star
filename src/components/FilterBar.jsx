@@ -50,6 +50,16 @@ export default function FilterBar({ sources, filters, onChange }) {
         />
         <span style={{ fontSize: 13, minWidth: 16 }}>{filters.minScore}</span>
       </div>
+
+      {/* Show expired toggle */}
+      <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#6b7280', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={!!filters.showExpired}
+          onChange={e => onChange({ ...filters, showExpired: e.target.checked })}
+        />
+        Show expired
+      </label>
     </div>
   )
 }

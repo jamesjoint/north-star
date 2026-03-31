@@ -113,7 +113,7 @@ export default function App() {
             {/* Detail panel */}
             {selectedJob && (
               <div style={{ flex: 1, overflowY: 'auto', borderLeft: '1px solid #e5e7eb' }}>
-                <JobDetail job={selectedJob} onClose={() => setSelectedId(null)} />
+                <JobDetail job={selectedJob} onClose={() => setSelectedId(null)} onStatusChange={updateStatus} />
               </div>
             )}
           </div>

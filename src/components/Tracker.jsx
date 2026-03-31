@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { STATUS_COLORS } from './JobCard.jsx'
 
-const STATUS_OPTIONS = ['Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed']
+const STATUS_OPTIONS = ['Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed', 'Expired']
 
 const TH = {
   padding: '8px 12px', textAlign: 'left', fontSize: 12,

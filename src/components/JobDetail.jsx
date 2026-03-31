@@ -10,16 +10,27 @@ const DIMENSION_LABELS = {
 
 const DIMENSION_ORDER = Object.keys(DIMENSION_LABELS)
 
-export default function JobDetail({ job, onClose }) {
+import { useState } from 'react'
+
+export default function JobDetail({ job, onClose, onStatusChange }) {
+  const [linkClicked, setLinkClicked] = useState(false)
+
   let dims = {}
   if (job.score_dimensions) {
     try {
-      dims = JSON.parse(job.score_dimensions)
+      dims = typeof job.score_dimensions === 'string'
+        ? JSON.parse(job.score_dimensions)
+        : job.score_dimensions
     } catch {
       dims = {}
     }
   }
   const summary = dims.summary || null
+
+  function handleMarkExpired() {
+    onStatusChange?.(job.id, { status: 'Expired' })
+    setLinkClicked(false)
+  }
 
   return (
     <div style={{ padding: 20, borderLeft: '1px solid #e5e7eb', overflowY: 'auto', height: '100%' }}>
@@ -36,14 +47,37 @@ export default function JobDetail({ job, onClose }) {
         {job.company} · {job.location} · {job.source}
       </p>
 
-      <a
-        href={job.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ fontSize: 13, color: '#3b82f6' }}
-      >
-        View listing →
-      </a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <a
+          href={job.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => setLinkClicked(true)}
+          style={{ fontSize: 13, color: '#3b82f6' }}
+        >
+          View listing →
+        </a>
+        {linkClicked && job.status !== 'Expired' && (
+          <span style={{ fontSize: 12, color: '#9ca3af' }}>
+            Job gone?{' '}
+            <button
+              onClick={handleMarkExpired}
+              style={{
+                fontSize: 12, padding: '1px 8px', borderRadius: 4,
+                border: '1px solid #d1d5db', background: '#f9fafb',
+                color: '#6b7280', cursor: 'pointer',
+              }}
+            >
+              Mark as expired
+            </button>
+          </span>
+        )}
+        {job.status === 'Expired' && (
+          <span style={{ fontSize: 12, background: '#f3f4f6', color: '#9ca3af', borderRadius: 4, padding: '2px 8px' }}>
+            Expired
+          </span>
+        )}
+      </div>
 
       {summary && (
         <p style={{ marginTop: 16, padding: 12, background: '#f0fdf4', borderRadius: 6, fontSize: 13, lineHeight: 1.5 }}>

@@ -11,7 +11,19 @@ export function createApp(db, pipeline = null) {
   app.get('/api/jobs', (req, res) => {
     const jobs = getAllJobs(db)
     markAllSeen(db)
-    res.json(jobs)
+    const now = Date.now()
+    const result = jobs.map(job => {
+      if (!job.score_aggregate) return job
+      const dateStr = job.posted_at || (job.fetched_at && job.fetched_at.slice(0, 10))
+      if (!dateStr) return job
+      const ageDays = (now - new Date(dateStr).getTime()) / 86_400_000
+      if (ageDays > 30) {
+        return { ...job, score_aggregate: Math.max(1, +(job.score_aggregate - 2).toFixed(2)) }
+      }
+      return job
+    })
+    result.sort((a, b) => (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1))
+    res.json(result)
   })
 
   app.get('/api/jobs/:id', (req, res) => {

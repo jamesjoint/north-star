@@ -11,6 +11,7 @@ export function useJobs() {
     sources: [],
     remote: 'all',
     minScore: 0,
+    showExpired: false,
   })
 
   const mountedRef = useRef(true)
@@ -57,6 +58,7 @@ export function useJobs() {
   }, [load])
 
   const filteredJobs = jobs.filter(job => {
+    if (!filters.showExpired && job.status === 'Expired') return false
     if (filters.sources.length > 0 && !filters.sources.includes(job.source)) return false
     if (filters.remote !== 'all' && job.remote !== filters.remote) return false
     if (filters.minScore > 0 && (job.score_aggregate == null || job.score_aggregate < filters.minScore)) return false

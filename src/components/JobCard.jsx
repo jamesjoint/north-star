@@ -1,4 +1,4 @@
-const STATUS_OPTIONS = ['none', 'Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed']
+const STATUS_OPTIONS = ['none', 'Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed', 'Expired']
 
 export const STATUS_COLORS = {
   Saved:           { bg: '#e0f2fe', color: '#0369a1' },
@@ -7,6 +7,7 @@ export const STATUS_COLORS = {
   Interviewing:    { bg: '#dcfce7', color: '#166534' },
   Offer:           { bg: '#fef08a', color: '#713f12' },
   Passed:          { bg: '#fee2e2', color: '#991b1b' },
+  Expired:         { bg: '#f3f4f6', color: '#9ca3af' },
 }
 
 export default function JobCard({ job, onSelect, selected, onStatusChange }) {
