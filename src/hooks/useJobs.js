@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { fetchJobs, triggerRefresh } from '../api.js'
+import { fetchJobs, triggerRefresh, patchJob } from '../api.js'
 
 export function useJobs() {
   const [jobs, setJobs] = useState([])
@@ -63,5 +63,14 @@ export function useJobs() {
     return true
   })
 
-  return { jobs: filteredJobs, allJobs: jobs, loading, refreshing, error, lastRefreshed, filters, setFilters, refresh }
+  const updateStatus = useCallback(async (id, updates) => {
+    try {
+      const updated = await patchJob(id, updates)
+      setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updated } : j))
+    } catch (err) {
+      console.error('[useJobs] updateStatus failed:', err.message)
+    }
+  }, [])
+
+  return { jobs: filteredJobs, allJobs: jobs, loading, refreshing, error, lastRefreshed, filters, setFilters, refresh, updateStatus }
 }

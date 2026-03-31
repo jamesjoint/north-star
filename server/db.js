@@ -25,6 +25,15 @@ export function openDb(dbPath = DEFAULT_DB_PATH) {
       seen INTEGER DEFAULT 0
     )
   `)
+  // Tracking columns — added after initial schema, safe to re-run
+  for (const sql of [
+    "ALTER TABLE jobs ADD COLUMN status TEXT DEFAULT 'none'",
+    'ALTER TABLE jobs ADD COLUMN follow_up_date TEXT',
+    'ALTER TABLE jobs ADD COLUMN notes TEXT',
+    'ALTER TABLE jobs ADD COLUMN applied_date TEXT',
+  ]) {
+    try { db.exec(sql) } catch (_) { /* column already exists */ }
+  }
   return db
 }
 
@@ -80,4 +89,19 @@ export function getUnscoredIds(db) {
 
 export function markSeen(db, id) {
   db.prepare('UPDATE jobs SET seen = 1 WHERE id = ?').run(id)
+}
+
+export function updateJobTracking(db, id, updates) {
+  const allowed = ['status', 'follow_up_date', 'notes', 'applied_date']
+  const fields = []
+  const values = []
+  for (const key of allowed) {
+    if (key in updates) {
+      fields.push(`${key} = ?`)
+      values.push(updates[key])
+    }
+  }
+  if (!fields.length) return
+  values.push(id)
+  db.prepare(`UPDATE jobs SET ${fields.join(', ')} WHERE id = ?`).run(...values)
 }
