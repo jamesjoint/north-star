@@ -1,2 +1,136 @@
 *, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; background: #f9fafb; }
+
+:root {
+  /* === iPod touch / iPhone iOS 4–6 classic === */
+
+  /* Screen: the iconic grouped-table-view gray */
+  --screen:        #efeff4;
+  --screen-raised: #ffffff;
+  --screen-dim:    #dddde1;
+
+  /* Chrome / bezel */
+  --chrome:   #1c1c1e;
+  --chrome-2: #2c2c2e;
+  --chrome-3: #3a3a3c;
+
+  /* Brand palette */
+  --brand-blue:  #30C5FF;
+  --brand-green: #A0CB3B;
+  --brand-amber: #FAB71F;
+  --brand-pink:  #EC5298;
+
+  /* Primary action — brand blue */
+  --blue:       #30C5FF;
+  --blue-light: #4db8f5;
+  --blue-text:  #ffffff;
+
+  /* Text hierarchy */
+  --text:   #000000;
+  --text-2: #3c3c43;
+  --text-3: #8e8e93;
+  --text-4: #c7c7cc;
+
+  /* Separator lines */
+  --divider:     rgba(0,0,0,0.15);
+  --divider-dim: rgba(0,0,0,0.08);
+
+  /* Now Playing panel */
+  --np-bg:     #1c1c1e;
+  --np-raised: #2c2c2e;
+  --np-border: #3a3a3c;
+  --np-text:   #f2f2f7;
+  --np-text-2: #aeaeb2;
+  --np-text-3: #636366;
+
+  /* Score — brand green / amber / pink */
+  --score-hi:  #A0CB3B;
+  --score-mid: #FAB71F;
+  --score-lo:  #EC5298;
+
+  /* Helvetica Neue is the soul of iPod OS */
+  --font:   'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  --radius: 10px;
+}
+
+html, body {
+  margin: 0;
+  background: var(--chrome);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 0; }
+
+/* iOS cell separator — hairline, inset from left */
+.ios-cell {
+  background: #ffffff;
+  position: relative;
+}
+.ios-cell::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 16px;
+  right: 0;
+  height: 0.5px;
+  background: rgba(0,0,0,0.15);
+  pointer-events: none;
+}
+
+/* iOS grouped section label */
+.ios-section-header {
+  padding: 6px 16px 4px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--screen);
+}
+
+/* Row slide-in */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.row-anim {
+  animation: slideIn 0.18s ease both;
+}
+
+/* iOS-style range input */
+input[type=range] {
+  accent-color: var(--blue);
+  height: 4px;
+}
+
+/* iOS-style checkbox */
+input[type=checkbox] {
+  accent-color: var(--blue);
+}
+
+/* Segmented control base */
+.ios-segment {
+  display: inline-flex;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--blue);
+}
+.ios-segment button {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: var(--font);
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--blue);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.ios-segment button.active {
+  background: var(--blue);
+  color: #fff;
+}

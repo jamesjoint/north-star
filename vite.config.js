@@ -12,6 +12,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.js'],
+    fileParallelism: false,
     environmentMatchGlobs: [
       ['tests/client/**/*.{test,spec}.jsx', 'jsdom'],
       ['tests/server/**/*.{test,spec}.js', 'node'],

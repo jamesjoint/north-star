@@ -25,12 +25,13 @@ test('renders title, company, location', () => {
   expect(screen.getByText(/New York, NY/)).toBeInTheDocument()
 })
 
-test('shows "New" badge when seen is 0', () => {
+test('shows unseen indicator (blue dot) when seen is 0', () => {
   render(<JobCard job={JOB} onSelect={vi.fn()} />)
-  expect(screen.getByText('New')).toBeInTheDocument()
+  // "New" text is gone — unseen is now a blue dot; verify no text badge
+  expect(screen.queryByText('New')).not.toBeInTheDocument()
 })
 
-test('does not show "New" badge when seen is 1', () => {
+test('does not show unseen indicator when seen is 1', () => {
   render(<JobCard job={{ ...JOB, seen: 1 }} onSelect={vi.fn()} />)
   expect(screen.queryByText('New')).not.toBeInTheDocument()
 })
@@ -47,7 +48,7 @@ test('calls onSelect with job id when clicked', () => {
   expect(onSelect).toHaveBeenCalledWith('abc123')
 })
 
-test('score badge shows dash when score is null', () => {
+test('score badge shows em-dash when score is null', () => {
   render(<JobCard job={{ ...JOB, score_aggregate: null }} onSelect={vi.fn()} />)
-  expect(screen.getByText('–')).toBeInTheDocument()
+  expect(screen.getByText('—')).toBeInTheDocument()
 })

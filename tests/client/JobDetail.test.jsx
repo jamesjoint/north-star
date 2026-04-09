@@ -30,29 +30,29 @@ test('renders job title and company', () => {
   expect(screen.getByText(/Acme/)).toBeInTheDocument()
 })
 
-test('renders all 7 dimension labels', () => {
+test('renders all 7 dimension friendly labels', () => {
   render(<JobDetail job={JOB} onClose={vi.fn()} />)
-  expect(screen.getByText(/core.mechanism/i)).toBeInTheDocument()
-  expect(screen.getByText(/product.depth/i)).toBeInTheDocument()
-  expect(screen.getByText(/regulated.complexity/i)).toBeInTheDocument()
-  expect(screen.getByText(/bd.track.record/i)).toBeInTheDocument()
-  expect(screen.getByText(/mba.preference/i)).toBeInTheDocument()
-  expect(screen.getByText(/domain.gap/i)).toBeInTheDocument()
-  expect(screen.getByText(/gap.bridgeability/i)).toBeInTheDocument()
+  expect(screen.getByText('Connector Fit')).toBeInTheDocument()
+  expect(screen.getByText('Daily Texture')).toBeInTheDocument()
+  expect(screen.getByText('Structural Integrity')).toBeInTheDocument()
+  expect(screen.getByText('Visibility')).toBeInTheDocument()
+  expect(screen.getByText('Pioneering')).toBeInTheDocument()
+  expect(screen.getByText('Domain Fit')).toBeInTheDocument()
+  expect(screen.getByText('Gap Bridgeability')).toBeInTheDocument()
 })
 
-test('renders dimension scores', () => {
+test('renders dimension score numbers', () => {
   render(<JobDetail job={JOB} onClose={vi.fn()} />)
-  expect(screen.getByText('8 / 10')).toBeInTheDocument()
+  expect(screen.getByText('8')).toBeInTheDocument()
 })
 
 test('renders link to original listing', () => {
   render(<JobDetail job={JOB} onClose={vi.fn()} />)
-  const link = screen.getByRole('link', { name: /view listing/i })
+  const link = screen.getByTitle('View listing')
   expect(link).toHaveAttribute('href', 'https://example.com/job/1')
 })
 
-test('renders AI summary', () => {
+test('renders AI summary in quotes', () => {
   render(<JobDetail job={JOB} onClose={vi.fn()} />)
-  expect(screen.getByText('Strong fit overall.')).toBeInTheDocument()
+  expect(screen.getByText('"Strong fit overall."')).toBeInTheDocument()
 })
