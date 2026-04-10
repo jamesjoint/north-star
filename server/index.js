@@ -298,11 +298,16 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   const pool = createPool()
 
   // Run schema migrations before starting — idempotent, safe on every boot
+  process.stdout.write('[migration-start] DATABASE_URL = ' + (process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:\/\/.*@/, '://***@') : 'NOT SET') + '\n')
+
   try {
     const schemaPath = path.join(__dirname, 'db/schema.sql')
+    process.stdout.write('[migration] schema path = ' + schemaPath + '\n')
+    process.stdout.write('[migration] schema exists = ' + existsSync(schemaPath) + '\n')
     const schema = readFileSync(schemaPath, 'utf8')
+    process.stdout.write('[migration] schema length = ' + schema.length + '\n')
     await pool.query(schema)
-    console.log('[startup] Schema applied.')
+    process.stdout.write('[migration] SUCCESS\n')
 
     // Bootstrap admin user if ADMIN_EMAIL is set and user doesn't exist
     const adminEmail = process.env.ADMIN_EMAIL
@@ -314,11 +319,12 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
          ON CONFLICT (email) DO NOTHING`,
         [adminId, adminEmail]
       )
-      if (rowCount > 0) console.log(`[startup] Admin user created: ${adminEmail}`)
+      if (rowCount > 0) process.stdout.write('[migration] Admin user created: ' + adminEmail + '\n')
     }
   } catch (err) {
-    console.error('[startup] Migration failed — aborting:', err.message)
-    process.exit(1)
+    process.stdout.write('[migration-ERROR] ' + err.message + '\n')
+    process.stdout.write('[migration-STACK] ' + err.stack + '\n')
+    // DO NOT abort - continue starting server
   }
 
   const app = createApp(pool, runPipeline)
