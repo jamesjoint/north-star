@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { configDotenv } from 'dotenv'
 // override: true ensures .env values win over any ambient env vars (e.g. Claude Code's session key)
 configDotenv({ override: true })
@@ -295,6 +296,31 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   const { createPool } = await import('./db.js')
   const { runPipeline, startScheduler } = await import('./scheduler.js')
   const pool = createPool()
+
+  // Run schema migrations before starting — idempotent, safe on every boot
+  try {
+    const schemaPath = path.join(__dirname, 'db/schema.sql')
+    const schema = readFileSync(schemaPath, 'utf8')
+    await pool.query(schema)
+    console.log('[startup] Schema applied.')
+
+    // Bootstrap admin user if ADMIN_EMAIL is set and user doesn't exist
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (adminEmail) {
+      const adminId = randomUUID()
+      const { rowCount } = await pool.query(
+        `INSERT INTO "user" (id, name, email, "emailVerified", role, status, "createdAt", "updatedAt")
+         VALUES ($1, '', $2, true, 'admin', 'active', now(), now())
+         ON CONFLICT (email) DO NOTHING`,
+        [adminId, adminEmail]
+      )
+      if (rowCount > 0) console.log(`[startup] Admin user created: ${adminEmail}`)
+    }
+  } catch (err) {
+    console.error('[startup] Migration failed — aborting:', err.message)
+    process.exit(1)
+  }
+
   const app = createApp(pool, runPipeline)
   const PORT = process.env.PORT || 3001
   app.listen(PORT, async () => {
