@@ -2,10 +2,20 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM || 'noreply@example.com'
-const APP_NAME = 'JobMatch'
+const APP_NAME = 'North Star'
+
+async function send(payload) {
+  console.log(`[email] Sending "${payload.subject}" to ${payload.to} from ${payload.from}`)
+  const { data, error } = await resend.emails.send(payload)
+  if (error) {
+    console.error(`[email] Resend error — to:${payload.to} subject:"${payload.subject}"`, JSON.stringify(error))
+    throw new Error(`Resend: ${error.message || JSON.stringify(error)}`)
+  }
+  console.log(`[email] Sent ok — id:${data?.id} to:${payload.to}`)
+}
 
 export async function sendMagicLinkEmail({ to, url }) {
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: `Your ${APP_NAME} sign-in link`,
@@ -18,7 +28,7 @@ export async function sendMagicLinkEmail({ to, url }) {
 }
 
 export async function sendWaitlistConfirmationEmail({ to }) {
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: `You're on the ${APP_NAME} waitlist`,
@@ -30,7 +40,7 @@ export async function sendWaitlistConfirmationEmail({ to }) {
 }
 
 export async function sendApprovalEmail({ to }) {
-  await resend.emails.send({
+  await send({
     from: FROM,
     to,
     subject: `You're in — sign in to ${APP_NAME}`,

@@ -42,7 +42,9 @@ export default function LoginPage() {
 
       // Try magic link first (works if user already exists and is active)
       const magicRes = await sendMagicLink(email)
-      if (magicRes.ok) {
+      if (magicRes.ok || magicRes.status >= 500) {
+        // Show confirmation even on server errors — user should check inbox regardless,
+        // and a 5xx means the request was valid (email infra issue, not a bad address)
         setStage('sent')
         return
       }

@@ -18,7 +18,12 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
-        await sendMagicLinkEmail({ to: email, url })
+        try {
+          await sendMagicLinkEmail({ to: email, url })
+        } catch (err) {
+          console.error(`[auth] Magic link email failed for ${email}:`, err.message)
+          throw err
+        }
       },
       expiresIn: 900, // 15 minutes
     })
