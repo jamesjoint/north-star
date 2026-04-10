@@ -42,6 +42,15 @@ export async function sendMagicLink(email) {
   return res
 }
 
+export async function requestLink(email) {
+  const res = await apiFetch(`${BASE}/auth/request-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  return res
+}
+
 export async function fetchJobs() {
   const res = await apiFetch(`${BASE}/jobs`)
   if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.status}`)

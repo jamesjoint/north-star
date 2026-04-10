@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { signup, sendMagicLink, redeemInvite } from '../api.js'
+import { requestLink, redeemInvite } from '../api.js'
 
 function getInviteCode() {
   return new URLSearchParams(window.location.search).get('invite')
@@ -23,59 +23,22 @@ export default function LoginPage() {
     setMessage('')
     try {
       if (inviteCode) {
-        // Redeem invite path
         const res = await redeemInvite(inviteCode, email)
         const body = await res.json().catch(() => ({}))
-        if (res.ok) {
+        if (res.ok || res.status === 409) {
           setStage('sent')
           return
-        }
-        if (res.status === 409) {
-          // Already used — try signing in anyway
-          const magicRes = await sendMagicLink(email)
-          if (magicRes.ok) { setStage('sent'); return }
         }
         setMessage(body.error || 'This invite link is no longer valid.')
         setStage('error')
         return
       }
 
-      // Try magic link first (works if user already exists and is active)
-      const magicRes = await sendMagicLink(email)
-      if (magicRes.ok || magicRes.status >= 500) {
-        // Show confirmation even on server errors — user should check inbox regardless,
-        // and a 5xx means the request was valid (email infra issue, not a bad address)
-        setStage('sent')
-        return
-      }
-
-      if (magicRes.status === 403) {
-        // User exists but account is pending/inactive
-        setStage('waitlist')
-        setMessage("Your account is pending approval. We'll email you when you're approved.")
-        return
-      }
-
-      // User doesn't exist yet — sign them up for the waitlist
-      if (magicRes.status === 404 || magicRes.status === 400) {
-        const signupRes = await signup(email)
-        const body = await signupRes.json()
-        if (signupRes.ok) {
-          setStage('waitlist')
-          setMessage(body.message || "You're on the waitlist — we'll be in touch.")
-          return
-        }
-        if (signupRes.status === 409) {
-          setMessage('This email is already registered. Check your inbox for a sign-in link.')
-          setStage('sent')
-          return
-        }
-        setMessage(body.error || 'Something went wrong. Please try again.')
-        setStage('error')
-      }
+      await requestLink(email)
+      setStage('sent')
     } catch {
-      setMessage('Could not connect. Check your connection and try again.')
-      setStage('error')
+      // Show sent anyway — user should check inbox; network errors are transient
+      setStage('sent')
     } finally {
       setLoading(false)
     }
@@ -111,8 +74,8 @@ export default function LoginPage() {
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>✉️</div>
             <p style={{ fontSize: 15, color: 'var(--text-1)', fontWeight: 500 }}>Check your inbox</p>
-            <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 8 }}>
-              We sent a sign-in link to <strong>{email}</strong>
+            <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 8, lineHeight: 1.5 }}>
+              If this email is eligible, a sign-in link has been sent. Check your inbox and spam folder.
             </p>
             <button
               style={{ marginTop: 20, fontSize: 13, color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -120,13 +83,6 @@ export default function LoginPage() {
             >
               Use a different email
             </button>
-          </div>
-        )}
-
-        {(stage === 'waitlist') && (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-            <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>{message}</p>
           </div>
         )}
 
