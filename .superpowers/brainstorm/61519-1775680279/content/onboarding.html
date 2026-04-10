@@ -1,0 +1,73 @@
+<h2>Section 3: Onboarding Wizard</h2>
+<p class="subtitle">How new users set up their profile and scoring dimensions — the moment the app becomes theirs</p>
+
+<div style="display:flex;gap:8px;margin:16px 0;align-items:center;flex-wrap:wrap">
+  <div style="background:rgba(167,139,250,0.2);border:1px solid #a78bfa;border-radius:20px;padding:4px 14px;font-size:12px;color:#a78bfa;white-space:nowrap">Step 1 · Welcome</div>
+  <div style="color:#555;font-size:14px">→</div>
+  <div style="background:rgba(56,189,248,0.2);border:1px solid #38bdf8;border-radius:20px;padding:4px 14px;font-size:12px;color:#38bdf8;white-space:nowrap">Step 2 · Your Background</div>
+  <div style="color:#555;font-size:14px">→</div>
+  <div style="background:rgba(52,211,153,0.2);border:1px solid #34d399;border-radius:20px;padding:4px 14px;font-size:12px;color:#34d399;white-space:nowrap">Step 3 · Claude generates dims</div>
+  <div style="color:#555;font-size:14px">→</div>
+  <div style="background:rgba(251,191,36,0.2);border:1px solid #fbbf24;border-radius:20px;padding:4px 14px;font-size:12px;color:#fbbf24;white-space:nowrap">Step 4 · Review & tune</div>
+  <div style="color:#555;font-size:14px">→</div>
+  <div style="background:rgba(251,113,133,0.2);border:1px solid #fb7185;border-radius:20px;padding:4px 14px;font-size:12px;color:#fb7185;white-space:nowrap">Step 5 · Name first board</div>
+  <div style="color:#555;font-size:14px">→</div>
+  <div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:4px 14px;font-size:12px;color:#fff;white-space:nowrap">Dashboard</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+  <div style="background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:14px">
+    <div class="label" style="color:#38bdf8">Step 2 · Your Background</div>
+    <p style="font-size:13px;color:#ccc;margin:8px 0">A few guided prompts — not a blank text box:</p>
+    <ul style="font-size:13px;line-height:2;color:#aaa;padding-left:16px;margin:0">
+      <li>"What's your professional background in 2-3 sentences?"</li>
+      <li>"What kind of work energizes you most?"</li>
+      <li>"What do you want in your next role that you don't have now?"</li>
+      <li>"Any deal-breakers?" (optional)</li>
+    </ul>
+    <p style="font-size:12px;color:#666;margin:8px 0 0">This feeds directly into Claude's dimension generation prompt</p>
+  </div>
+
+  <div style="background:rgba(52,211,153,0.06);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:14px">
+    <div class="label" style="color:#34d399">Step 3 · Claude generates your dimensions</div>
+    <p style="font-size:13px;color:#ccc;margin:8px 0">Loading screen while Claude reads their answers and produces:</p>
+    <ul style="font-size:13px;line-height:2;color:#aaa;padding-left:16px;margin:0">
+      <li>5–8 custom scoring dimensions tailored to them</li>
+      <li>A name + description for each</li>
+      <li>Suggested default weights</li>
+      <li>A short "profile summary" paragraph Claude will use when scoring</li>
+    </ul>
+    <p style="font-size:12px;color:#666;margin:8px 0 0">Same structure as your current <code>profile.json</code>, generated fresh per user</p>
+  </div>
+
+  <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px">
+    <div class="label" style="color:#fbbf24">Step 4 · Review & tune</div>
+    <p style="font-size:13px;color:#ccc;margin:8px 0">User sees their generated dimensions with:</p>
+    <ul style="font-size:13px;line-height:2;color:#aaa;padding-left:16px;margin:0">
+      <li>Inline editing — rename or rewrite any dim</li>
+      <li>Add a dimension / remove one</li>
+      <li>Weight sliders (same as your current Settings tab)</li>
+      <li>"Regenerate" button if they want Claude to try again</li>
+    </ul>
+    <p style="font-size:12px;color:#666;margin:8px 0 0">Always editable later from their Settings tab</p>
+  </div>
+
+  <div style="background:rgba(251,113,133,0.06);border:1px solid rgba(251,113,133,0.2);border-radius:10px;padding:14px">
+    <div class="label" style="color:#fb7185">Step 5 · Name your first board</div>
+    <p style="font-size:13px;color:#ccc;margin:8px 0">Simple prompt:</p>
+    <div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:10px;font-size:13px;color:#aaa;margin:8px 0">
+      "What do you want to call your first tracker board?"<br>
+      <span style="color:#666;font-size:12px">e.g. "Tech roles", "My job search", "Fall 2026"</span>
+    </div>
+    <p style="font-size:12px;color:#666;margin:4px 0 0">They can create more boards any time. This just seeds the first one.</p>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px">
+  <div class="label">After onboarding completes</div>
+  <p style="font-size:13px;color:#aaa;margin:6px 0 0">Background job kicks off: scores all current jobs in the shared pool against their new profile. First time they land on the Jobs tab there'll be a progress indicator — "Scoring X jobs for you…" — and results populate as they come in.</p>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Does this onboarding flow feel right? Anything too much friction or missing?</p>

@@ -6,12 +6,12 @@ const EMBED_URL = 'https://airtable.com/embed/app273MbfxysjvLIz/shrDiWjubnMeAEEV
 // Functions we care about (PM, BD, partnerships-adjacent)
 const RELEVANT_FUNCTIONS = ['Product', 'Business Development', 'BD', 'Sales', 'Marketing', 'Partnerships', 'Strategy', 'Operations', 'Customer Success', 'Growth', 'Data']
 
-function isRelevant(functions) {
+export function isRelevant(functions) {
   if (!functions || functions.length === 0) return true // keep if unknown
   return functions.some(f => RELEVANT_FUNCTIONS.some(r => f.toLowerCase().includes(r.toLowerCase())))
 }
 
-function isUS(country) {
+export function isUS(country) {
   if (!country) return true
   const c = country.toLowerCase()
   return c.includes('united states') || c.includes('us') || c === 'usa'
@@ -21,7 +21,7 @@ function isUS(country) {
  * Parse body innerText from Airtable grid.
  * Returns array of { name, url, functions, country, state, city, workEnv }
  */
-function parseBodyText(text) {
+export function parseBodyText(text) {
   // Split into lines, clean up
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
 

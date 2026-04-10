@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { formatRelativeDate } from '../utils/date.js'
+import { scoreColor, parseDimensions } from '../utils/scoring.js'
 
 const STATUS_OPTIONS = ['none', 'Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed', 'Not Applying', 'Expired']
 
@@ -13,27 +15,13 @@ export const STATUS_COLORS = {
   Expired:         { bg: '#f3f4f6', color: '#9ca3af' },
 }
 
-function scoreColor(s) {
-  if (s == null) return '#c7c7cc'
-  if (s >= 7) return '#A0CB3B'
-  if (s >= 4) return '#FAB71F'
-  return '#EC5298'
-}
 
 export default function JobCard({ job, onSelect, selected, onStatusChange, onDelete }) {
   const score = job.score_aggregate
   const [hovered, setHovered] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
 
-  const summary = (() => {
-    if (!job.score_dimensions) return null
-    try {
-      const dims = typeof job.score_dimensions === 'string'
-        ? JSON.parse(job.score_dimensions)
-        : job.score_dimensions
-      return dims.summary || null
-    } catch { return null }
-  })()
+  const summary = parseDimensions(job.score_dimensions).summary || null
 
   const status = job.status || 'none'
   const statusStyle = STATUS_COLORS[status]
@@ -132,6 +120,10 @@ export default function JobCard({ job, onSelect, selected, onStatusChange, onDel
           {job.company}
           {job.location ? ` · ${job.location}` : ''}
           {REMOTE_BADGE[job.remote] ? ` · ${REMOTE_BADGE[job.remote]}` : ''}
+          {(() => {
+            const d = job.posted_at || (job.fetched_at && job.fetched_at.slice(0, 10))
+            return d ? ` · ${formatRelativeDate(d)}` : ''
+          })()}
         </div>
       </div>
 

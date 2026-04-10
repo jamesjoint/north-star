@@ -1,3 +1,5 @@
+import { isDefaultFilters, DEFAULT_FILTERS } from '../utils/filters.js'
+
 const STATUS_FILTER_OPTIONS = [
   { value: 'all',           label: 'All' },
   { value: 'untracked',     label: 'Untracked' },
@@ -29,7 +31,8 @@ const iosSelect = {
   WebkitAppearance: 'none',
 }
 
-export default function FilterBar({ sources, filters, onChange }) {
+
+export default function FilterBar({ sources, sourceCounts = {}, filters, onChange }) {
   return (
     <div style={{
       background: 'var(--screen)',
@@ -77,6 +80,25 @@ export default function FilterBar({ sources, filters, onChange }) {
         ))}
       </select>
 
+      {/* Title / company search */}
+      <input
+        type="text"
+        placeholder="Title or company…"
+        value={filters.query || ''}
+        onChange={e => onChange({ ...filters, query: e.target.value })}
+        style={{
+          fontSize: 13,
+          padding: '5px 10px',
+          borderRadius: 9,
+          border: 'none',
+          background: 'rgba(0,0,0,0.07)',
+          color: '#000',
+          fontFamily: 'var(--font)',
+          width: 130,
+          outline: 'none',
+        }}
+      />
+
       {/* Location — iOS search-field style */}
       <input
         type="text"
@@ -109,6 +131,67 @@ export default function FilterBar({ sources, filters, onChange }) {
           {filters.minScore || '—'}
         </span>
       </div>
+
+      {/* Source chips */}
+      {sources.length > 1 && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          {sources.map(src => {
+            const active = filters.sources.includes(src)
+            return (
+              <button
+                key={src}
+                onClick={() => {
+                  const next = active
+                    ? filters.sources.filter(s => s !== src)
+                    : [...filters.sources, src]
+                  onChange({ ...filters, sources: next })
+                }}
+                style={{
+                  fontSize: 11, padding: '3px 9px', borderRadius: 20,
+                  border: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
+                  background: active ? 'var(--blue)' : 'rgba(0,0,0,0.07)',
+                  color: active ? '#fff' : '#8e8e93',
+                  fontWeight: active ? 600 : 400,
+                  transition: 'all 0.12s',
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                {src}
+                {sourceCounts[src] && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, lineHeight: 1,
+                    opacity: active ? 0.75 : 0.6,
+                  }}>
+                    {sourceCounts[src]}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+          {filters.sources.length > 0 && (
+            <button
+              onClick={() => onChange({ ...filters, sources: [] })}
+              style={{ fontSize: 11, color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', padding: '2px 4px' }}
+            >
+              clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Reset all — only visible when filters are non-default */}
+      {!isDefaultFilters(filters) && (
+        <button
+          onClick={() => onChange(DEFAULT_FILTERS)}
+          style={{
+            fontSize: 11, color: 'var(--blue)', background: 'none', border: 'none',
+            cursor: 'pointer', fontFamily: 'var(--font)', padding: '2px 4px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          reset
+        </button>
+      )}
 
       {/* Toggles — right-aligned */}
       <div style={{ display: 'flex', gap: 12, marginLeft: 'auto', alignItems: 'center' }}>

@@ -1,0 +1,88 @@
+<h2>Section 2: Auth & Invite Flow</h2>
+<p class="subtitle">How new users get in and how magic link login works</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px">
+
+  <div>
+    <h3>Getting In (Invite Flow)</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:12px">
+        <div style="background:#a78bfa;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">1</div>
+        <div>
+          <strong style="font-size:13px">You generate an invite link</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">From an admin panel or a simple <code>/admin/invites</code> page — one-click generates a unique invite URL with an expiry (e.g. 7 days)</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:12px">
+        <div style="background:#a78bfa;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">2</div>
+        <div>
+          <strong style="font-size:13px">User visits the link</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">They see a simple landing page: "You've been invited to join [app name]. Enter your email to get started."</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:12px">
+        <div style="background:#a78bfa;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">3</div>
+        <div>
+          <strong style="font-size:13px">Magic link sent</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">They get an email with a one-time sign-in link (via <strong>Resend</strong> — simple email API, free tier generous). Link expires in 15 min.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:12px">
+        <div style="background:#34d399;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">4</div>
+        <div>
+          <strong style="font-size:13px">Account created → Onboarding</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">First login triggers profile setup wizard. Subsequent logins go straight to their dashboard.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div>
+    <h3>Returning Login</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">1</div>
+        <div>
+          <strong style="font-size:13px">Visit the app</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">Unauthenticated users see a minimal login page — just an email field</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">2</div>
+        <div>
+          <strong style="font-size:13px">Enter email → get link</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">Same magic link flow. No password to forget. Only registered emails work — no self-signup.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">3</div>
+        <div>
+          <strong style="font-size:13px">Session cookie set</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">better-auth issues a session token, stored as an httpOnly cookie. Session lasts 30 days. No JWT complexity.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:16px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:12px">
+      <div class="label" style="color:#fbbf24">Your admin controls</div>
+      <ul style="font-size:13px;line-height:2;margin:6px 0 0;padding-left:16px;color:#ccc">
+        <li>Generate + revoke invite links</li>
+        <li>See who has accounts</li>
+        <li>Manually deactivate a user</li>
+        <li>See scoring job queue status</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:20px">Does this flow feel right? Anything you'd want different about how invites or login works?</p>

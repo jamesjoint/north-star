@@ -1,78 +1,46 @@
-import { useState } from 'react'
-
-const DIMENSION_LABELS = {
-  core_mechanism:       'Connector Fit',
-  product_depth:        'Daily Texture',
-  regulated_complexity: 'Structural Integrity',
-  bd_track_record:      'Visibility',
-  mba_preference:       'Pioneering',
-  domain_gap:           'Domain Fit',
-  gap_bridgeability:    'Gap Bridgeability',
-}
-const DIMENSION_ORDER = Object.keys(DIMENSION_LABELS)
+import { useState, useEffect } from 'react'
+import { formatRelativeDate, localDateStr } from '../utils/date.js'
+import { dimLabel, pipelineForStatus } from '../utils/jobDetail.js'
+import { parseDimensions } from '../utils/scoring.js'
+import { companyInitials, companyHue, companyBg } from '../utils/avatar.js'
 
 function scoreColor(s) {
+  if (s == null) return '#c7c7cc'
   if (s >= 7) return 'var(--score-hi)'
   if (s >= 4) return 'var(--score-mid)'
   return 'var(--score-lo)'
 }
 
-/* Hash company name → a consistent saturated dark HSL color */
-function companyHue(name) {
-  let h = 0
-  for (let i = 0; i < name.length; i++) {
-    h = name.charCodeAt(i) + ((h << 5) - h)
-  }
-  return Math.abs(h) % 360
-}
 
-function companyBg(name) {
-  const hue = companyHue(name || 'Unknown')
-  return `hsl(${hue}, 50%, 32%)`
-}
-
-/* Company initials — up to 2 chars */
-function initials(name) {
-  if (!name) return '?'
-  const words = name.trim().split(/\s+/)
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
-  return (words[0][0] + words[1][0]).toUpperCase()
-}
-
-/* Pipeline: map status → { pct, label, next } */
-const PIPELINE = [
-  { status: 'Saved',         pct: 0,   label: 'Saved',         next: 'Apply' },
-  { status: 'Outreach Sent', pct: 20,  label: 'Outreach',      next: 'Follow Up' },
-  { status: 'Applied',       pct: 40,  label: 'Applied',       next: 'Phone Screen' },
-  { status: 'Interviewing',  pct: 65,  label: 'Interviewing',  next: 'Final Round' },
-  { status: 'Offer',         pct: 88,  label: 'Offer',         next: 'Decision' },
-  { status: 'Passed',        pct: 100, label: 'Closed',        next: '—' },
-  { status: 'Not Applying',  pct: 0,   label: 'Not Applying',  next: '—' },
-  { status: 'Expired',       pct: 100, label: 'Expired',       next: '—' },
-]
-
-function pipelineForStatus(status) {
-  return PIPELINE.find(p => p.status === status) || { pct: 0, label: status || 'Saved', next: 'Apply' }
-}
-
-function daysAgo(dateStr) {
-  if (!dateStr) return null
-  const d = new Date(dateStr)
-  const diff = Math.round((Date.now() - d.getTime()) / 86_400_000)
-  return diff === 0 ? 'today' : diff === 1 ? '1 day ago' : `${diff} days ago`
-}
+const STATUSES = ['Saved', 'Outreach Sent', 'Applied', 'Interviewing', 'Offer', 'Passed', 'Not Applying']
 
 export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext }) {
   const [linkClicked, setLinkClicked] = useState(false)
+  const [localNotes, setLocalNotes] = useState(null)
+  const [localSalary, setLocalSalary] = useState(null)
+  const [localFollowUp, setLocalFollowUp] = useState(null)
+  const [showDesc, setShowDesc] = useState(false)
 
-  let dims = {}
-  if (job.score_dimensions) {
-    try {
-      dims = typeof job.score_dimensions === 'string'
-        ? JSON.parse(job.score_dimensions)
-        : job.score_dimensions
-    } catch { dims = {} }
-  }
+  // Reset local draft state when navigating to a different job
+  useEffect(() => {
+    setLocalNotes(null)
+    setLocalSalary(null)
+    setLocalFollowUp(null)
+    setShowDesc(false)
+  }, [job.id])
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return
+      if (e.key === 'ArrowLeft'  && onPrev) { e.preventDefault(); onPrev() }
+      if (e.key === 'ArrowRight' && onNext) { e.preventDefault(); onNext() }
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onPrev, onNext, onClose])
+
+  const dims = parseDimensions(job.score_dimensions)
 
   const summary = dims.summary || null
   const score = job.score_aggregate
@@ -83,7 +51,8 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
   const hue = companyHue(job.company || '')
 
   const pipe = pipelineForStatus(job.status)
-  const appliedAgo = daysAgo(job.applied_date)
+  const appliedAgo = formatRelativeDate(job.applied_date) || null
+  const followUpOverdue = job.follow_up_date && job.follow_up_date < localDateStr(new Date())
 
   /* Badge color */
   const badgeBg = scorePct == null ? '#8e8e93'
@@ -162,7 +131,7 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
             textShadow: '0 2px 8px rgba(0,0,0,0.25)',
             zIndex: 1,
           }}>
-            {initials(job.company)}
+            {companyInitials(job.company) || '?'}
           </span>
 
           {/* Match score badge — top right */}
@@ -230,6 +199,33 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
             </p>
           )}
         </div>
+
+        {/* ── Quick track ── */}
+        {onStatusChange && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, justifyContent: 'center' }}>
+              {STATUSES.map(s => {
+                const active = job.status === s
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onStatusChange(job.id, { status: active ? 'none' : s })}
+                    style={{
+                      padding: '4px 10px', borderRadius: 20, border: 'none',
+                      cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font)',
+                      fontWeight: active ? 600 : 400,
+                      background: active ? 'var(--blue)' : 'rgba(0,0,0,0.07)',
+                      color: active ? '#fff' : '#8e8e93',
+                      transition: 'all 0.12s',
+                    }}
+                  >
+                    {s}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Transport controls ── */}
         <div style={{
@@ -322,7 +318,21 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
           {job.posted_at && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 13 }}>📅</span>
-              <span style={{ fontSize: 12, color: '#8e8e93' }}>Posted {job.posted_at}</span>
+              <span style={{ fontSize: 12, color: '#8e8e93' }}>Posted {formatRelativeDate(job.posted_at)}</span>
+            </div>
+          )}
+          {job.salary_range && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13 }}>💰</span>
+              <span style={{ fontSize: 12, color: '#8e8e93' }}>{job.salary_range}</span>
+            </div>
+          )}
+          {job.follow_up_date && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13 }}>{followUpOverdue ? '⚠️' : '🔔'}</span>
+              <span style={{ fontSize: 12, color: followUpOverdue ? '#EC5298' : '#8e8e93', fontWeight: followUpOverdue ? 600 : 400 }}>
+                Follow up {followUpOverdue ? 'overdue: ' : ''}{formatRelativeDate(job.follow_up_date)}
+              </span>
             </div>
           )}
         </div>
@@ -337,6 +347,95 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
           </p>
         )}
 
+        {/* ── Notes ── */}
+        {onStatusChange && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{
+              margin: '0 0 6px', fontSize: 11, fontWeight: 400,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: '#8e8e93', textAlign: 'center',
+            }}>
+              Notes
+            </p>
+            <textarea
+              value={localNotes !== null ? localNotes : (job.notes || '')}
+              placeholder="Add notes…"
+              rows={3}
+              onChange={e => setLocalNotes(e.target.value)}
+              onBlur={e => {
+                onStatusChange(job.id, { notes: e.target.value })
+                setLocalNotes(null)
+              }}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                fontSize: 12, lineHeight: 1.6,
+                padding: '8px 10px', borderRadius: 9,
+                border: '0.5px solid rgba(0,0,0,0.15)',
+                background: '#fff', color: '#000',
+                fontFamily: 'var(--font)', resize: 'vertical',
+                outline: 'none',
+              }}
+            />
+          </div>
+        )}
+
+        {/* ── Salary + Follow-up ── */}
+        {onStatusChange && (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                margin: '0 0 5px', fontSize: 11, fontWeight: 400,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: '#8e8e93',
+              }}>
+                Salary Range
+              </p>
+              <input
+                type="text"
+                value={localSalary !== null ? localSalary : (job.salary_range || '')}
+                placeholder="e.g. $120k–$150k"
+                onChange={e => setLocalSalary(e.target.value)}
+                onBlur={e => {
+                  onStatusChange(job.id, { salary_range: e.target.value || null })
+                  setLocalSalary(null)
+                }}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  fontSize: 12, padding: '7px 10px', borderRadius: 9,
+                  border: '0.5px solid rgba(0,0,0,0.15)',
+                  background: '#fff', color: '#000',
+                  fontFamily: 'var(--font)', outline: 'none',
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{
+                margin: '0 0 5px', fontSize: 11, fontWeight: 400,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: '#8e8e93',
+              }}>
+                Follow-up
+              </p>
+              <input
+                type="date"
+                value={localFollowUp !== null ? localFollowUp : (job.follow_up_date || '')}
+                onChange={e => setLocalFollowUp(e.target.value)}
+                onBlur={e => {
+                  onStatusChange(job.id, { follow_up_date: e.target.value || null })
+                  setLocalFollowUp(null)
+                }}
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  fontSize: 12, padding: '7px 10px', borderRadius: 9,
+                  border: '0.5px solid rgba(0,0,0,0.15)',
+                  background: '#fff', color: '#000',
+                  fontFamily: 'var(--font)', outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Score breakdown ── */}
         <div style={{ borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: 18 }}>
           <p style={{
@@ -348,67 +447,94 @@ export default function JobDetail({ job, onClose, onStatusChange, onPrev, onNext
           </p>
 
           {/* iOS grouped cells */}
-          <div style={{
-            background: '#fff',
-            borderRadius: 12,
-            overflow: 'hidden',
-            border: '0.5px solid rgba(0,0,0,0.12)',
-          }}>
-            {DIMENSION_ORDER.map((key, i) => {
-              const d = dims[key]
-              if (!d) return null
-              const c = scoreColor(d.score)
-              const isLast = i === DIMENSION_ORDER.filter(k => dims[k]).length - 1
-              return (
-                <div key={key} style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 12,
-                  padding: '11px 14px',
-                  borderBottom: isLast ? 'none' : '0.5px solid rgba(0,0,0,0.08)',
-                  position: 'relative',
-                }}>
-                  {/* Colored left accent */}
-                  <div style={{
-                    position: 'absolute', left: 0, top: 0, bottom: 0,
-                    width: 4, background: c, borderRadius: '12px 0 0 0',
-                    ...(isLast && { borderRadius: '0 0 0 12px' }),
-                    ...(i === 0 && { borderRadius: '12px 0 0 0' }),
-                  }} />
+          {(() => {
+            const entries = Object.entries(dims).filter(([k]) => k !== 'summary')
+            return (
+              <div style={{
+                background: '#fff',
+                borderRadius: 12,
+                overflow: 'hidden',
+                border: '0.5px solid rgba(0,0,0,0.12)',
+              }}>
+                {entries.map(([key, d], i) => {
+                  const c = scoreColor(d.score)
+                  const isLast = i === entries.length - 1
+                  return (
+                    <div key={key} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      padding: '11px 14px',
+                      borderBottom: isLast ? 'none' : '0.5px solid rgba(0,0,0,0.08)',
+                      position: 'relative',
+                    }}>
+                      {/* Colored left accent */}
+                      <div style={{
+                        position: 'absolute', left: 0, top: 0, bottom: 0,
+                        width: 4, background: c,
+                        borderRadius: i === 0 ? '12px 0 0 0' : isLast ? '0 0 0 12px' : 0,
+                      }} />
 
-                  {/* Content */}
-                  <div style={{ flex: 1, paddingLeft: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>
-                        {DIMENSION_LABELS[key]}
-                      </span>
-                      {/* Score badge */}
-                      <span style={{
-                        fontSize: 12, fontWeight: 700,
-                        color: '#fff',
-                        background: c,
-                        borderRadius: 20,
-                        padding: '1px 8px',
-                        lineHeight: 1.6,
-                        flexShrink: 0,
-                      }}>
-                        {d.score}
-                      </span>
+                      {/* Content */}
+                      <div style={{ flex: 1, paddingLeft: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>
+                            {d.label || dimLabel(key)}
+                          </span>
+                          <span style={{
+                            fontSize: 12, fontWeight: 700,
+                            color: '#fff', background: c,
+                            borderRadius: 20, padding: '1px 8px',
+                            lineHeight: 1.6, flexShrink: 0,
+                          }}>
+                            {d.score}
+                          </span>
+                        </div>
+                        {d.reasoning && (
+                          <p style={{ margin: 0, fontSize: 11, lineHeight: 1.55, color: '#8e8e93' }}>
+                            {d.reasoning}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    {d.reasoning && (
-                      <p style={{
-                        margin: 0, fontSize: 11, lineHeight: 1.55,
-                        color: '#8e8e93',
-                      }}>
-                        {d.reasoning}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
+
+        {/* ── Job Description ── */}
+        {job.description && (
+          <div style={{ marginTop: 20, borderTop: '0.5px solid rgba(0,0,0,0.1)', paddingTop: 16 }}>
+            <button
+              onClick={() => setShowDesc(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                padding: 0, marginBottom: showDesc ? 10 : 0,
+              }}
+            >
+              <span style={{
+                fontSize: 11, fontWeight: 400, letterSpacing: '0.08em',
+                textTransform: 'uppercase', color: '#8e8e93',
+              }}>
+                Job Description
+              </span>
+              <span style={{ fontSize: 12, color: '#8e8e93' }}>{showDesc ? '▲' : '▼'}</span>
+            </button>
+            {showDesc && (
+              <div style={{
+                fontSize: 12, lineHeight: 1.7, color: '#3c3c43',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                background: 'rgba(0,0,0,0.03)', borderRadius: 9,
+                padding: '12px 14px',
+              }}>
+                {job.description}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>

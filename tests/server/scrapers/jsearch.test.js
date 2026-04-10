@@ -41,3 +41,52 @@ test('returns empty array when RAPIDAPI_KEY is not set', async () => {
   const jobs = await scrape()
   expect(jobs).toEqual([])
 })
+
+test('marks job as remote when job_is_remote is true', async () => {
+  const axios = (await import('axios')).default
+  const remoteJob = { ...MOCK_JOB, job_is_remote: true, job_city: 'New York', job_state: 'NY' }
+  axios.get = vi.fn().mockResolvedValue({ data: { data: [remoteJob] } })
+  const { scrape } = await import('../../../server/scrapers/jsearch.js?t=' + Date.now())
+  const jobs = await scrape()
+  expect(jobs[0].remote).toBe('remote')
+})
+
+test('skips jobs without a url', async () => {
+  const axios = (await import('axios')).default
+  const noUrl = { ...MOCK_JOB, job_apply_link: null }
+  axios.get = vi.fn().mockResolvedValue({ data: { data: [noUrl, MOCK_JOB] } })
+  const { scrape } = await import('../../../server/scrapers/jsearch.js?t=' + Date.now())
+  const jobs = await scrape()
+  // only the one with a url should be returned
+  expect(jobs).toHaveLength(1)
+  expect(jobs[0].url).toBe(MOCK_JOB.job_apply_link)
+})
+
+test('handles empty data array from API', async () => {
+  const axios = (await import('axios')).default
+  axios.get = vi.fn().mockResolvedValue({ data: { data: [] } })
+  const { scrape } = await import('../../../server/scrapers/jsearch.js?t=' + Date.now())
+  const jobs = await scrape()
+  expect(jobs).toEqual([])
+})
+
+test('continues after a query throws an error', async () => {
+  const axios = (await import('axios')).default
+  // First query fails, rest return the mock job (all same url → deduped to 1)
+  axios.get = vi.fn()
+    .mockRejectedValueOnce(new Error('network error'))
+    .mockResolvedValue({ data: { data: [MOCK_JOB] } })
+  const { scrape } = await import('../../../server/scrapers/jsearch.js?t=' + Date.now())
+  const jobs = await scrape()
+  // 4 successful queries, all returning the same job → 1 result
+  expect(jobs).toHaveLength(1)
+})
+
+test('sets posted_at to null when job_posted_at_datetime_utc is absent', async () => {
+  const axios = (await import('axios')).default
+  const noDate = { ...MOCK_JOB, job_posted_at_datetime_utc: null }
+  axios.get = vi.fn().mockResolvedValue({ data: { data: [noDate] } })
+  const { scrape } = await import('../../../server/scrapers/jsearch.js?t=' + Date.now())
+  const jobs = await scrape()
+  expect(jobs[0].posted_at).toBeNull()
+})

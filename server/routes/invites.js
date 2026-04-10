@@ -18,7 +18,7 @@ publicInviteRouter.post('/:code/redeem', async (req, res) => {
 
   const existing = await db.findOne({ model: 'user', where: [{ field: 'email', value: email }] })
   if (existing) {
-    if (existing.status === 'pending') {
+    if (existing.status === 'pending' || existing.status === 'deactivated') {
       await req.pool.query(`UPDATE "user" SET status = 'active', "updatedAt" = now() WHERE id = $1`, [existing.id])
     }
   } else {
@@ -42,9 +42,11 @@ publicInviteRouter.post('/:code/redeem', async (req, res) => {
   await req.pool.query(`UPDATE app_invites SET used_by = $1 WHERE code = $2`, [userRows[0].id, invite.code])
 
   // Send magic link — fire and forget, don't fail if email is broken
-  auth.api.signInMagicLink({ body: { email } }).catch(err =>
-    console.error('[redeem] magic link failed:', err.message)
-  )
+  const appUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3001'
+  auth.api.signInMagicLink({
+    body: { email, callbackURL: appUrl },
+    headers: new Headers({ host: new URL(appUrl).host }),
+  }).catch(err => console.error('[redeem] magic link failed:', err.message))
 
   res.status(201).json({ status: 'active', message: 'Check your inbox for a sign-in link.' })
 })
@@ -54,8 +56,12 @@ const adminRouter = Router()
 
 adminRouter.post('/', requireAdmin, async (req, res) => {
   const { expiresInDays = 7 } = req.body
+  const days = Number(expiresInDays)
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    return res.status(400).json({ error: 'expiresInDays must be an integer between 1 and 365' })
+  }
   const code = crypto.randomUUID()
-  const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
   await req.pool.query(
     `INSERT INTO app_invites (code, created_by, expires_at) VALUES ($1, $2, $3)`,
     [code, req.user.id, expiresAt]

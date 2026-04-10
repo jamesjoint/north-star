@@ -32,6 +32,7 @@ beforeEach(async () => {
   await pool.query('DELETE FROM app_invites')
   await pool.query('DELETE FROM verification')
   await pool.query('DELETE FROM account')
+  await pool.query('DELETE FROM profiles')
   await pool.query('DELETE FROM session')
   await pool.query('DELETE FROM "user"')
 })
@@ -97,6 +98,44 @@ describe('GET /api/auth/me', () => {
     expect(res.body.email).toBe('me@example.com')
     expect(res.body.role).toBe('user')
   })
+
+  it('returns role=admin for admin users', async () => {
+    const userId = crypto.randomUUID()
+    const token = crypto.randomUUID()
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, "emailVerified", role, status) VALUES ($1,'','admin@example.com',true,'admin','active')`,
+      [userId]
+    )
+    await pool.query(
+      `INSERT INTO session (id, "expiresAt", token, "userId") VALUES ($1,$2,$3,$4)`,
+      [crypto.randomUUID(), new Date(Date.now() + 86400000), token, userId]
+    )
+    const res = await request(app)
+      .get('/api/auth/me')
+      .set('Cookie', `better-auth.session_token=${signedCookie(token)}`)
+    expect(res.status).toBe(200)
+    expect(res.body.role).toBe('admin')
+    expect(res.body.status).toBe('active')
+  })
+})
+
+describe('requireAuth — expired session', () => {
+  it('returns 401 for expired session token', async () => {
+    const userId = crypto.randomUUID()
+    const token = crypto.randomUUID()
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, "emailVerified", role, status) VALUES ($1,'','expired@example.com',true,'user','active')`,
+      [userId]
+    )
+    await pool.query(
+      `INSERT INTO session (id, "expiresAt", token, "userId") VALUES ($1,$2,$3,$4)`,
+      [crypto.randomUUID(), new Date(Date.now() - 1000), token, userId] // expired 1s ago
+    )
+    const res = await request(app)
+      .get('/api/jobs')
+      .set('Cookie', `better-auth.session_token=${signedCookie(token)}`)
+    expect(res.status).toBe(401)
+  })
 })
 
 describe('requireAuth — pending user blocked', () => {
@@ -115,5 +154,24 @@ describe('requireAuth — pending user blocked', () => {
       .get('/api/jobs')
       .set('Cookie', `better-auth.session_token=${signedCookie(token)}`)
     expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/pending/i)
+  })
+
+  it('returns 403 for deactivated account', async () => {
+    const userId = crypto.randomUUID()
+    const token = crypto.randomUUID()
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, "emailVerified", role, status) VALUES ($1,'','deactivated@example.com',true,'user','deactivated')`,
+      [userId]
+    )
+    await pool.query(
+      `INSERT INTO session (id, "expiresAt", token, "userId") VALUES ($1,$2,$3,$4)`,
+      [crypto.randomUUID(), new Date(Date.now() + 86400000), token, userId]
+    )
+    const res = await request(app)
+      .get('/api/jobs')
+      .set('Cookie', `better-auth.session_token=${signedCookie(token)}`)
+    expect(res.status).toBe(403)
+    expect(res.body.error).toMatch(/deactivated/i)
   })
 })

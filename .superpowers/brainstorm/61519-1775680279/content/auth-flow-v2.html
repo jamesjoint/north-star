@@ -1,0 +1,85 @@
+<h2>Section 2: Auth & Invite Flow (revised)</h2>
+<p class="subtitle">Two paths in — self-signup with a waitlist, or invite links that skip it</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px">
+
+  <div>
+    <h3>Path A — Self Signup</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">1</div>
+        <div>
+          <strong style="font-size:13px">Anyone visits the site</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">Landing page with a brief description + "Get early access" CTA</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">2</div>
+        <div>
+          <strong style="font-size:13px">Enter email → joins waitlist</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">Account created but in <code>pending</code> state. They get a "you're on the list" confirmation email.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:8px;padding:12px">
+        <div style="background:#38bdf8;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">3</div>
+        <div>
+          <strong style="font-size:13px">You approve them</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">One-click approval in your admin panel flips their status to <code>active</code> and sends them a magic link to finish onboarding</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div>
+    <h3>Path B — Invite Link (skip waitlist)</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:12px">
+        <div style="background:#a78bfa;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">1</div>
+        <div>
+          <strong style="font-size:13px">You generate an invite link</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">From admin panel — unique URL, expires in 7 days</p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:12px">
+        <div style="background:#a78bfa;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">2</div>
+        <div>
+          <strong style="font-size:13px">User visits link → enters email</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">Invite code pre-authorizes them — no waitlist, account goes straight to <code>active</code></p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:12px">
+        <div style="background:#34d399;color:#000;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0">3</div>
+        <div>
+          <strong style="font-size:13px">Magic link → straight to onboarding</strong>
+          <p style="font-size:12px;color:#aaa;margin:4px 0 0">No approval step — they're in immediately</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:14px">
+  <div class="label" style="color:#fbbf24">Returning login (both paths)</div>
+  <p style="font-size:13px;color:#ccc;margin:6px 0 0">Just an email field → magic link → 30-day session cookie. Same for everyone once they're active.</p>
+</div>
+
+<div style="margin-top:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px">
+  <div class="label">Your admin controls</div>
+  <ul style="font-size:13px;line-height:2;margin:6px 0 0;padding-left:16px;color:#ccc">
+    <li>View waitlist + one-click approve/reject</li>
+    <li>Generate + revoke invite links</li>
+    <li>See all active users + deactivate</li>
+    <li>Scoring queue status</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top:20px">Does this revised flow work?</p>

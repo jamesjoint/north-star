@@ -63,4 +63,18 @@ describe('runAllScrapers', () => {
     expect(first).toHaveLength(1)
     expect(second).toHaveLength(0) // already in db
   })
+
+  test('returns empty array when all scrapers return no jobs', async () => {
+    const scrapers = [
+      { scrape: async () => [] },
+      { scrape: async () => [] },
+    ]
+    const ids = await runAllScrapers(pool, scrapers)
+    expect(ids).toEqual([])
+  })
+
+  test('returns empty array when scrapers list is empty', async () => {
+    const ids = await runAllScrapers(pool, [])
+    expect(ids).toEqual([])
+  })
 })

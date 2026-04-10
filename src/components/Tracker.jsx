@@ -1,14 +1,91 @@
 import { useState } from 'react'
 import { STATUS_COLORS } from './JobCard.jsx'
 import { patchJobDescription } from '../api.js'
+import { jobsToCsv, downloadCsv } from '../utils/export.js'
+import { computeStats, convRate } from '../utils/stats.js'
+import { sortTrackerJobs } from '../utils/trackerSort.js'
+import { localDateStr } from '../utils/date.js'
+
+// Board name editor inline
+function BoardTab({ board, active, onClick, onRename, onDelete, canDelete }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(board.name)
+
+  function commit() {
+    setEditing(false)
+    if (draft.trim() && draft.trim() !== board.name) onRename(board.id, draft.trim())
+    else setDraft(board.name)
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(board.name); setEditing(false) } }}
+          style={{
+            fontSize: 13, fontWeight: 500, fontFamily: 'var(--font)',
+            border: 'none', borderBottom: '1.5px solid var(--blue)',
+            outline: 'none', background: 'transparent',
+            width: Math.max(60, draft.length * 8), padding: '0 2px',
+          }}
+        />
+      ) : (
+        <button
+          onClick={onClick}
+          onDoubleClick={() => setEditing(true)}
+          style={{
+            fontSize: 13, fontWeight: active ? 600 : 400,
+            color: active ? 'var(--text)' : 'var(--text-3)',
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--font)', padding: '4px 10px 4px 10px',
+            position: 'relative',
+          }}
+        >
+          {board.emoji && <span style={{ marginRight: 4 }}>{board.emoji}</span>}
+          {board.name}
+          {board.job_count > 0 && (
+            <span style={{
+              marginLeft: 5, fontSize: 10, fontWeight: 700,
+              color: active ? 'var(--blue)' : 'var(--text-4)',
+              background: active ? 'rgba(48,197,255,0.12)' : 'rgba(0,0,0,0.06)',
+              borderRadius: 10, padding: '1px 5px',
+            }}>{board.job_count}</span>
+          )}
+          {active && (
+            <span style={{
+              position: 'absolute', bottom: -1, left: 4, right: 4,
+              height: 2, background: 'var(--blue)', borderRadius: 2,
+            }} />
+          )}
+        </button>
+      )}
+      {active && canDelete && (
+        <button
+          onClick={() => onDelete(board.id)}
+          title="Delete board"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: 12, color: 'var(--text-4)', padding: '0 4px',
+            lineHeight: 1,
+          }}
+        >✕</button>
+      )}
+    </div>
+  )
+}
 
 const STATUS_OPTIONS = ['Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed', 'Not Applying', 'Expired']
 const EMPTY_FORM = { url: '', title: '', company: '', location: '', status: 'Saved', description: '' }
 
 const TRACKER_SORT_OPTIONS = [
-  { value: 'applied_desc', label: 'Applied ↓' },
-  { value: 'score_desc',   label: 'Score ↓' },
-  { value: 'company_asc',  label: 'Company A–Z' },
+  { value: 'applied_desc',  label: 'Applied ↓' },
+  { value: 'followup_asc',  label: 'Follow-up ↑' },
+  { value: 'score_desc',    label: 'Score ↓' },
+  { value: 'company_asc',   label: 'Company A–Z' },
 ]
 
 function scoreColor(s) {
@@ -35,20 +112,6 @@ const TH = {
 
 const TD = { padding: '10px 12px', fontSize: 14, verticalAlign: 'middle', color: '#000', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }
 
-function computeStats(jobs) {
-  const tracked = jobs.filter(j => j.status && j.status !== 'none')
-  const now = new Date()
-  const weekAgo  = new Date(now - 7  * 86_400_000).toISOString().slice(0, 10)
-  const monthAgo = new Date(now - 30 * 86_400_000).toISOString().slice(0, 10)
-  const byStatus = {}
-  for (const j of tracked) byStatus[j.status] = (byStatus[j.status] || 0) + 1
-  const appliedCount      = byStatus['Applied']      || 0
-  const interviewingCount = byStatus['Interviewing'] || 0
-  const offerCount        = byStatus['Offer']        || 0
-  const appliedThisWeek   = tracked.filter(j => j.applied_date && j.applied_date >= weekAgo).length
-  const appliedThisMonth  = tracked.filter(j => j.applied_date && j.applied_date >= monthAgo).length
-  return { byStatus, appliedCount, interviewingCount, offerCount, appliedThisWeek, appliedThisMonth }
-}
 
 const inputStyle = {
   fontSize: 14,
@@ -63,8 +126,9 @@ const inputStyle = {
   outline: 'none',
 }
 
-export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, selectedId }) {
+export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, selectedId, boards = [], activeBoardId, onSelectBoard, onCreateBoard, onRenameBoard, onDeleteBoard }) {
   const [localNotes, setLocalNotes] = useState({})
+  const [localSalary, setLocalSalary] = useState({})
   const [expandedJD, setExpandedJD] = useState(null)
   const [localJD, setLocalJD] = useState({})
   const [showForm, setShowForm] = useState(false)
@@ -73,22 +137,8 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
   const [submitting, setSubmitting] = useState(false)
   const [trackerSort, setTrackerSort] = useState('applied_desc')
   const [showStats, setShowStats] = useState(false)
-
-  const tracked = [...jobs]
-    .filter(j => j.status && j.status !== 'none')
-    .sort((a, b) => {
-      switch (trackerSort) {
-        case 'score_desc':   return (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1)
-        case 'company_asc':  return (a.company || '').localeCompare(b.company || '')
-        case 'applied_desc':
-        default: {
-          if (!a.applied_date && !b.applied_date) return 0
-          if (!a.applied_date) return 1
-          if (!b.applied_date) return -1
-          return b.applied_date.localeCompare(a.applied_date)
-        }
-      }
-    })
+  const [creatingBoard, setCreatingBoard] = useState(false)
+  const [newBoardName, setNewBoardName] = useState('')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -103,10 +153,95 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
   }
 
   const STAT_STATUSES = ['Saved', 'Applied', 'Outreach Sent', 'Interviewing', 'Offer', 'Passed', 'Not Applying']
-  const convRate = (num, den) => den === 0 ? '—' : `${Math.round((num / den) * 100)}%`
+
+  function handleCreateBoard(e) {
+    e.preventDefault()
+    if (!newBoardName.trim()) return
+    onCreateBoard?.(newBoardName.trim())
+    setNewBoardName('')
+    setCreatingBoard(false)
+  }
+
+  // Filter tracked jobs to active board (null = all boards)
+  const tracked = sortTrackerJobs(
+    jobs.filter(j => j.status && j.status !== 'none').filter(j => !activeBoardId || j.board_id === activeBoardId),
+    trackerSort
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, overflow: 'hidden' }}>
+
+      {/* Board tabs */}
+      {boards.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 2,
+          padding: '0 12px',
+          background: '#fff',
+          borderBottom: '0.5px solid rgba(0,0,0,0.15)',
+          flexShrink: 0, overflowX: 'auto',
+        }}>
+          {/* "All" pseudo-tab */}
+          <button
+            onClick={() => onSelectBoard?.(null)}
+            style={{
+              fontSize: 13, fontWeight: activeBoardId == null ? 600 : 400,
+              color: activeBoardId == null ? 'var(--text)' : 'var(--text-3)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font)', padding: '8px 10px',
+              position: 'relative', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
+            All
+            {activeBoardId == null && (
+              <span style={{
+                position: 'absolute', bottom: -1, left: 4, right: 4,
+                height: 2, background: 'var(--blue)', borderRadius: 2,
+              }} />
+            )}
+          </button>
+
+          {boards.map(b => (
+            <BoardTab
+              key={b.id}
+              board={b}
+              active={activeBoardId === b.id}
+              onClick={() => onSelectBoard?.(b.id)}
+              onRename={(id, name) => onRenameBoard?.(id, name)}
+              onDelete={(id) => onDeleteBoard?.(id)}
+              canDelete={boards.length > 1}
+            />
+          ))}
+
+          {creatingBoard ? (
+            <form onSubmit={handleCreateBoard} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 6px' }}>
+              <input
+                autoFocus
+                value={newBoardName}
+                onChange={e => setNewBoardName(e.target.value)}
+                placeholder="Board name"
+                onBlur={() => { setCreatingBoard(false); setNewBoardName('') }}
+                onKeyDown={e => e.key === 'Escape' && (setCreatingBoard(false), setNewBoardName(''))}
+                style={{
+                  fontSize: 12, padding: '3px 8px', borderRadius: 6,
+                  border: '1px solid var(--blue)', outline: 'none',
+                  fontFamily: 'var(--font)', width: 100,
+                }}
+              />
+            </form>
+          ) : (
+            <button
+              onClick={() => setCreatingBoard(true)}
+              title="New board"
+              style={{
+                fontSize: 16, lineHeight: 1,
+                color: 'var(--text-4)', background: 'none', border: 'none',
+                cursor: 'pointer', padding: '4px 6px', flexShrink: 0,
+              }}
+            >+</button>
+          )}
+        </div>
+      )}
+
       {/* Toolbar — iOS navigation-bar style */}
       <div style={{
         display: 'flex',
@@ -148,22 +283,37 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
             {TRACKER_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         )}
-        <button
-          onClick={() => setShowStats(s => !s)}
-          style={{
-            marginLeft: 'auto', fontSize: 13,
-            color: showStats ? 'var(--blue)' : '#8e8e93',
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: 'var(--font)', fontWeight: 500,
-          }}
-        >
-          {showStats ? 'Hide Stats' : 'Stats'}
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {tracked.length > 0 && (
+            <button
+              onClick={() => downloadCsv(jobsToCsv(tracked))}
+              title="Export tracked jobs to CSV"
+              style={{
+                fontSize: 12, color: '#8e8e93',
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--font)',
+              }}
+            >
+              Export CSV
+            </button>
+          )}
+          <button
+            onClick={() => setShowStats(s => !s)}
+            style={{
+              fontSize: 13,
+              color: showStats ? 'var(--blue)' : '#8e8e93',
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: 'var(--font)', fontWeight: 500,
+            }}
+          >
+            {showStats ? 'Hide Stats' : 'Stats'}
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
       {showStats && (() => {
-        const stats = computeStats(jobs)
+        const stats = computeStats(tracked)
         return (
           <div style={{
             padding: '14px 16px',
@@ -271,7 +421,7 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Title', 'Company', 'Score', 'Status', 'Applied', 'Notes', 'JD', 'Source', ''].map(h => (
+                {['Title', 'Company', 'Score', 'Status', ...(boards.length > 1 ? ['Board'] : []), 'Applied', 'Follow-up', 'Salary', 'Notes', 'JD', 'Source', 'Link', ''].map(h => (
                   <th key={h} style={{ ...TH, textAlign: h === 'Score' ? 'center' : 'left', minWidth: h === 'Notes' ? 160 : undefined }}>
                     {h}
                   </th>
@@ -279,11 +429,14 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
               </tr>
             </thead>
             <tbody>
-              {tracked.map(job => {
+              {(() => {
+              const today = localDateStr(new Date())
+              return tracked.map(job => {
                 const st = STATUS_COLORS[job.status]
                 const notesVal = job.id in localNotes ? localNotes[job.id] : (job.notes || '')
+                const followUpOverdue = job.follow_up_date && job.follow_up_date < today
                 return (
-                  <tr key={job.id} style={{ background: selectedId === job.id ? 'rgba(0,119,237,0.1)' : '#fff', transition: 'background 0.08s' }}>
+                  <tr key={job.id} style={{ background: selectedId === job.id ? 'rgba(0,119,237,0.1)' : followUpOverdue ? 'rgba(250,183,31,0.06)' : '#fff', transition: 'background 0.08s' }}>
                     <td style={{ ...TD, maxWidth: 240 }}>
                       <button onClick={() => onSelect?.(job.id)}
                         style={{
@@ -313,10 +466,51 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
                         {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </td>
+                    {boards.length > 1 && (
+                      <td style={TD}>
+                        <select
+                          value={job.board_id || ''}
+                          onChange={e => onUpdate(job.id, { board_id: e.target.value })}
+                          style={{
+                            fontSize: 11, padding: '2px 18px 2px 6px', borderRadius: 20,
+                            border: 'none', background: 'rgba(0,0,0,0.06)',
+                            color: '#3c3c43', fontWeight: 500, cursor: 'pointer',
+                            fontFamily: 'var(--font)', appearance: 'none',
+                            backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%238e8e93'/%3E%3C/svg%3E\")",
+                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center',
+                          }}
+                        >
+                          {boards.map(b => (
+                            <option key={b.id} value={b.id}>{b.emoji ? `${b.emoji} ${b.name}` : b.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td style={TD}>
                       <input type="date" value={job.applied_date || ''}
                         onChange={e => onUpdate(job.id, { applied_date: e.target.value })}
                         style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--divider)', background: 'var(--screen-raised)', color: 'var(--text)', fontFamily: 'var(--font)', width: 'auto' }} />
+                    </td>
+                    <td style={TD}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {followUpOverdue && (
+                          <span title="Follow-up overdue" style={{ fontSize: 9, fontWeight: 700, color: '#fff', background: '#EC5298', borderRadius: 4, padding: '1px 4px', letterSpacing: '0.04em', flexShrink: 0 }}>DUE</span>
+                        )}
+                        <input type="date" value={job.follow_up_date || ''}
+                          onChange={e => onUpdate(job.id, { follow_up_date: e.target.value || null })}
+                          style={{ fontSize: 12, padding: '3px 6px', borderRadius: 6, border: `1px solid ${followUpOverdue ? '#EC5298' : 'var(--divider)'}`, background: followUpOverdue ? 'rgba(236,82,152,0.08)' : job.follow_up_date ? 'rgba(250,183,31,0.12)' : 'var(--screen-raised)', color: followUpOverdue ? '#EC5298' : job.follow_up_date ? '#854d0e' : 'var(--text)', fontFamily: 'var(--font)', width: 'auto' }} />
+                      </div>
+                    </td>
+                    <td style={TD}>
+                      <input type="text"
+                        value={job.id in localSalary ? localSalary[job.id] : (job.salary_range || '')}
+                        placeholder="e.g. $120k–$150k"
+                        onChange={e => setLocalSalary(prev => ({ ...prev, [job.id]: e.target.value }))}
+                        onBlur={e => {
+                          onUpdate(job.id, { salary_range: e.target.value || null })
+                          setLocalSalary(prev => { const n = { ...prev }; delete n[job.id]; return n })
+                        }}
+                        style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--divider)', background: 'var(--screen-raised)', color: 'var(--text)', width: 110, fontFamily: 'var(--font)' }} />
                     </td>
                     <td style={TD}>
                       <input type="text" value={notesVal} placeholder="Notes…"
@@ -358,6 +552,23 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
                     </td>
                     <td style={{ ...TD, color: 'var(--text-3)', fontSize: 11 }}>{job.source}</td>
                     <td style={TD}>
+                      {job.url && (
+                        <a href={job.url} target="_blank" rel="noopener noreferrer"
+                          title="Open job listing"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center',
+                            color: 'var(--blue)', opacity: 0.7,
+                            textDecoration: 'none', fontSize: 13,
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
+                            <path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            <path d="M10 2h4v4M14 2 8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </a>
+                      )}
+                    </td>
+                    <td style={TD}>
                       <button onClick={() => onDelete(job.id)} title="Delete"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: 14, padding: '2px 4px', transition: 'color 0.15s' }}
                         onMouseEnter={e => e.target.style.color = 'var(--score-lo)'}
@@ -367,7 +578,8 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
                     </td>
                   </tr>
                 )
-              })}
+              })
+            })()}
             </tbody>
           </table>
         </div>

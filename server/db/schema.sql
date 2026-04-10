@@ -86,12 +86,43 @@ CREATE TABLE IF NOT EXISTS tracker_entries (
   board_id       text        NOT NULL REFERENCES boards(id) ON DELETE CASCADE,
   user_id        text        NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   job_id         text        NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  status         text        NOT NULL DEFAULT 'saved',
+  status         text        NOT NULL DEFAULT 'Saved',
   notes          text,
   follow_up_date date,
   applied_date   date,
   created_at     timestamptz NOT NULL DEFAULT now(),
-  updated_at     timestamptz NOT NULL DEFAULT now()
+  updated_at     timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (job_id, user_id)
+);
+-- Idempotently add the unique constraint in case the table already exists without it
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'tracker_entries'::regclass
+    AND conname = 'tracker_entries_job_id_user_id_key'
+  ) THEN
+    ALTER TABLE tracker_entries ADD CONSTRAINT tracker_entries_job_id_user_id_key UNIQUE (job_id, user_id);
+  END IF;
+END $$;
+-- Idempotently add salary_range column
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tracker_entries' AND column_name = 'salary_range'
+  ) THEN
+    ALTER TABLE tracker_entries ADD COLUMN salary_range text;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id          text        NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,
+  background       text,
+  weights          jsonb       NOT NULL DEFAULT '{}',
+  dimensions       jsonb,
+  personality      jsonb,
+  profile_summary  text,
+  onboarding_done  boolean     NOT NULL DEFAULT false,
+  updated_at       timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS app_invites (
@@ -101,3 +132,13 @@ CREATE TABLE IF NOT EXISTS app_invites (
   expires_at        timestamptz NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now()
 );
+
+-- Performance indexes
+-- Partial index so "WHERE deleted = false" scans only live jobs
+CREATE INDEX IF NOT EXISTS idx_jobs_live ON jobs(fetched_at DESC) WHERE deleted = false;
+-- Per-user score lookups (complementary to the PK index which covers job_id+user_id together)
+CREATE INDEX IF NOT EXISTS idx_job_scores_user_id ON job_scores(user_id);
+-- Per-user tracker lookups
+CREATE INDEX IF NOT EXISTS idx_tracker_user_id ON tracker_entries(user_id);
+-- Per-user board lookups
+CREATE INDEX IF NOT EXISTS idx_boards_user_id ON boards(user_id);

@@ -1,0 +1,74 @@
+<h2>Section 1: Data Model Redesign</h2>
+<p class="subtitle">The core change — splitting what's shared from what's per-user</p>
+
+<div class="section">
+  <h3>Key Principle</h3>
+  <p>Currently everything lives in one <code>jobs</code> table tied to you. The new model separates <strong>shared data</strong> (the job listings themselves) from <strong>user data</strong> (your scores, your tracker entries, your profile).</p>
+</div>
+
+<div class="section">
+  <h3>New Schema</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:16px">
+      <div class="label" style="color:#a78bfa">Shared (all users)</div>
+      <div style="margin-top:10px">
+        <div style="font-family:monospace;font-size:13px;line-height:1.8">
+          <strong>jobs</strong><br>
+          &nbsp;&nbsp;id, title, company<br>
+          &nbsp;&nbsp;location, remote, url<br>
+          &nbsp;&nbsp;source, description<br>
+          &nbsp;&nbsp;posted_at, fetched_at<br>
+          &nbsp;&nbsp;deleted<br>
+          <br>
+          <strong>invites</strong><br>
+          &nbsp;&nbsp;code, created_by_user_id<br>
+          &nbsp;&nbsp;used_by_user_id, expires_at<br>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:16px">
+      <div class="label" style="color:#34d399">Per-user</div>
+      <div style="margin-top:10px">
+        <div style="font-family:monospace;font-size:13px;line-height:1.8">
+          <strong>users</strong><br>
+          &nbsp;&nbsp;id, email, created_at<br>
+          <br>
+          <strong>profiles</strong><br>
+          &nbsp;&nbsp;user_id, background (JSON)<br>
+          &nbsp;&nbsp;dimensions (JSON), weights (JSON)<br>
+          <br>
+          <strong>job_scores</strong><br>
+          &nbsp;&nbsp;job_id, user_id<br>
+          &nbsp;&nbsp;score_aggregate<br>
+          &nbsp;&nbsp;score_dimensions (JSON)<br>
+          &nbsp;&nbsp;scored_at<br>
+          <br>
+          <strong>boards</strong><br>
+          &nbsp;&nbsp;id, user_id, name<br>
+          &nbsp;&nbsp;created_at<br>
+          <br>
+          <strong>tracker_entries</strong><br>
+          &nbsp;&nbsp;id, board_id, user_id, job_id<br>
+          &nbsp;&nbsp;status, notes<br>
+          &nbsp;&nbsp;follow_up_date, applied_date<br>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>What Changes in Practice</h3>
+  <ul style="line-height:2">
+    <li>Scrapers write to <code>jobs</code> only — no user context needed</li>
+    <li>When a new user completes onboarding, their profile triggers background scoring of all current jobs → fills <code>job_scores</code></li>
+    <li>New jobs added to the pool trigger scoring for all users who have a profile</li>
+    <li>Tracker status, notes, follow-up dates move from <code>jobs</code> to <code>tracker_entries</code>, scoped to a board</li>
+    <li>Your existing data migrates: your current <code>jobs</code> rows become the seed <code>jobs</code> pool + your <code>job_scores</code> + one default board with your current tracker entries</li>
+  </ul>
+</div>
+
+<p class="subtitle">Does this data model look right? Any tables or fields missing?</p>

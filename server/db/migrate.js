@@ -52,6 +52,17 @@ async function migrate() {
   const { rows: adminRows } = await pool.query(`SELECT id FROM "user" WHERE email = $1`, [adminEmail])
   const actualAdminId = adminRows[0].id
 
+  // Seed admin's profile from profile.json
+  const profilePath = new URL('../../server/profile.json', import.meta.url).pathname
+  const fileProfile = JSON.parse(readFileSync(profilePath, 'utf8'))
+  await pool.query(
+    `INSERT INTO profiles (user_id, background, weights, onboarding_done, updated_at)
+     VALUES ($1, $2, $3::jsonb, true, now())
+     ON CONFLICT (user_id) DO NOTHING`,
+    [actualAdminId, fileProfile.background, JSON.stringify(fileProfile.weights)]
+  )
+  console.log('Admin profile seeded.')
+
   // Migrate scores → job_scores
   const scored = jobs.filter(j => j.score_aggregate != null)
   console.log(`Migrating ${scored.length} scores...`)
@@ -76,7 +87,7 @@ async function migrate() {
     await pool.query(`
       INSERT INTO tracker_entries (id, board_id, user_id, job_id, status, notes, follow_up_date, applied_date)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (job_id, user_id) DO NOTHING
     `, [
       crypto.randomUUID(), boardId, actualAdminId, job.id,
       job.status, job.notes,

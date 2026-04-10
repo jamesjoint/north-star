@@ -1,154 +1,288 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { signOut as apiSignOut } from '../api.js'
+import { avatarColor, initials } from '../utils/avatar.js'
 
-export default function Header({ lastRefreshed, refreshing, onRefresh }) {
-  const [time, setTime] = useState(getTime())
+const TABS = [
+  { id: 'search',   label: 'Jobs' },
+  { id: 'tracker',  label: 'Tracker' },
+  { id: 'settings', label: 'Settings' },
+]
+
+export default function Header({ tab, setTab, trackedCount, unseenCount, refreshing, onRefresh, prevTab, setPrevTab }) {
+  const { user, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
 
   useEffect(() => {
-    const t = setInterval(() => setTime(getTime()), 10000)
-    return () => clearInterval(t)
-  }, [])
+    if (!menuOpen) return
+    function onOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [menuOpen])
 
-  function getTime() {
-    return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  async function handleSignOut() {
+    setMenuOpen(false)
+    await logout()
   }
 
-  return (
-    <div style={{ flexShrink: 0, userSelect: 'none' }}>
+  function handleProfile() {
+    setMenuOpen(false)
+    if (setPrevTab) setPrevTab(tab)
+    setTab('profile')
+  }
 
-      {/* ── Status bar ── black, 20px, real iOS feel */}
+  function handleAdmin() {
+    setMenuOpen(false)
+    if (setPrevTab) setPrevTab(tab)
+    setTab('admin')
+  }
+
+  const color = avatarColor(user?.email)
+  const abbr = initials(user?.email)
+
+  return (
+    <header style={{
+      height: 48,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 12px',
+      background: '#fff',
+      borderBottom: '1px solid var(--divider)',
+      userSelect: 'none',
+      position: 'relative',
+      zIndex: 10,
+    }}>
+      {/* Logo */}
       <div style={{
-        height: 20,
-        background: '#000',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 8px 0 10px',
+        gap: 6,
+        minWidth: 100,
+        fontWeight: 700,
+        fontSize: 15,
+        letterSpacing: -0.3,
+        color: 'var(--text-2)',
       }}>
-        {/* Signal bars */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-          {[4, 6, 8, 10, 12].map((h, i) => (
-            <div key={i} style={{
-              width: 3,
-              height: h,
-              borderRadius: 1,
-              background: i < 4 ? '#fff' : 'rgba(255,255,255,0.25)',
-            }} />
-          ))}
-          <span style={{ fontSize: 10, color: '#fff', marginLeft: 4, fontWeight: 400, letterSpacing: 0 }}>
-            Job Search
-          </span>
-        </div>
-
-        {/* Time */}
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', letterSpacing: 0, lineHeight: 1 }}>
-          {time}
-        </span>
-
-        {/* Battery */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.02em' }}>
-            {refreshing ? '' : ''}
-          </span>
-          <div style={{ position: 'relative', width: 22, height: 11, border: '1.5px solid rgba(255,255,255,0.65)', borderRadius: 2.5 }}>
-            <div style={{
-              position: 'absolute', right: -3.5, top: '50%', transform: 'translateY(-50%)',
-              width: 2.5, height: 5, background: 'rgba(255,255,255,0.65)', borderRadius: '0 1.5px 1.5px 0',
-            }} />
-            <div style={{
-              position: 'absolute', left: 1.5, top: 1.5, bottom: 1.5,
-              width: refreshing ? '45%' : '82%',
-              background: refreshing ? '#FAB71F' : '#A0CB3B',
-              borderRadius: 1,
-              transition: 'width 0.4s, background 0.4s',
-            }} />
-          </div>
-        </div>
+        <span style={{ color: 'var(--blue)', fontSize: 17 }}>✦</span>
+        JobMatch
       </div>
 
-      {/* ── Navigation bar ── the iconic dark steel gradient */}
-      <div style={{
-        height: 44,
-        position: 'relative',
-        /* Top half lighter, bottom half darker — the classic iOS sheen split */
-        background: 'linear-gradient(180deg, #5a5e62 0%, #46494d 49%, #35383b 50%, #42464a 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderBottom: '1px solid #111',
-      }}>
-        {/* Glass sheen overlay */}
-        <div style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0,
-          height: '50%',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 100%)',
-          borderRadius: '0 0 0 0',
-          pointerEvents: 'none',
-        }} />
+      {/* Center tab nav */}
+      <nav style={{ flex: 1, display: 'flex', justifyContent: 'center', gap: 4 }}>
+        {TABS.map(t => {
+          const active = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                position: 'relative',
+                padding: '4px 14px',
+                fontSize: 14,
+                fontWeight: active ? 600 : 400,
+                color: active ? 'var(--text)' : 'var(--text-3)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font)',
+                transition: 'color 0.12s',
+              }}
+            >
+              {t.label}
+              {t.id === 'search' && unseenCount > 0 && (
+                <span style={{
+                  marginLeft: 5,
+                  background: 'var(--blue)',
+                  color: '#fff',
+                  borderRadius: 10,
+                  padding: '1px 5px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  verticalAlign: 'middle',
+                }}>
+                  {unseenCount}
+                </span>
+              )}
+              {t.id === 'tracker' && trackedCount > 0 && (
+                <span style={{
+                  marginLeft: 5,
+                  background: 'var(--blue)',
+                  color: '#fff',
+                  borderRadius: 10,
+                  padding: '1px 5px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  verticalAlign: 'middle',
+                }}>
+                  {trackedCount}
+                </span>
+              )}
+              {active && (
+                <span style={{
+                  position: 'absolute',
+                  bottom: -1,
+                  left: 8,
+                  right: 8,
+                  height: 2,
+                  background: 'var(--blue)',
+                  borderRadius: 2,
+                }} />
+              )}
+            </button>
+          )
+        })}
+      </nav>
 
-        {/* Title */}
-        <span style={{
-          fontSize: 17,
-          fontWeight: 700,
-          color: '#ffffff',
-          letterSpacing: -0.4,
-          textShadow: '0 -1px 0 rgba(0,0,0,0.55)',
-          zIndex: 1,
-        }}>
-          Job Search
-        </span>
-
-        {/* Refresh / battery — right side */}
+      {/* Right: refresh + avatar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 100, justifyContent: 'flex-end' }}>
         <button
           onClick={onRefresh}
           disabled={refreshing}
           title={refreshing ? 'Scanning…' : 'Refresh jobs'}
           style={{
-            position: 'absolute',
-            right: 10,
-            zIndex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            background: 'none',
-            border: 'none',
-            cursor: refreshing ? 'default' : 'pointer',
-            opacity: refreshing ? 0.6 : 1,
-            padding: '6px 4px',
-            transition: 'opacity 0.2s',
+            background: 'none', border: 'none', cursor: refreshing ? 'default' : 'pointer',
+            padding: 6, opacity: refreshing ? 0.5 : 0.7, transition: 'opacity 0.2s',
+            display: 'flex', alignItems: 'center',
           }}
         >
-          {/* Reload icon — classic iOS rounded arrow */}
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
               d="M13.5 8A5.5 5.5 0 1 1 8 2.5a5.47 5.47 0 0 1 3.536 1.29"
-              stroke={refreshing ? '#FAB71F' : 'rgba(255,255,255,0.75)'}
-              strokeWidth="1.5"
-              strokeLinecap="round"
+              stroke={refreshing ? 'var(--brand-amber)' : 'var(--text-3)'}
+              strokeWidth="1.5" strokeLinecap="round"
             />
             <path
               d="M11 1.5l1.5 2.5-2.5.5"
-              stroke={refreshing ? '#FAB71F' : 'rgba(255,255,255,0.75)'}
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              stroke={refreshing ? 'var(--brand-amber)' : 'var(--text-3)'}
+              strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
             />
           </svg>
-          {refreshing && (
-            <span style={{ fontSize: 11, color: '#FAB71F', fontWeight: 500 }}>…</span>
-          )}
         </button>
 
-        {/* Last refreshed — left side, subtle */}
-        {lastRefreshed && !refreshing && (
-          <span style={{
-            position: 'absolute', left: 10, zIndex: 1,
-            fontSize: 10, color: 'rgba(255,255,255,0.4)',
-          }}>
-            {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
+        {/* Avatar */}
+        <div ref={menuRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: color,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fff',
+              letterSpacing: 0.5,
+              fontFamily: 'var(--font)',
+            }}
+          >
+            {abbr}
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: 'calc(100% + 6px)',
+              width: 220,
+              background: '#fff',
+              borderRadius: 10,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)',
+              overflow: 'hidden',
+              zIndex: 100,
+            }}>
+              {/* User info */}
+              <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--divider)' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>Signed in as</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)', wordBreak: 'break-all' }}>
+                  {user?.email}
+                </div>
+                {user?.role === 'admin' && (
+                  <div style={{
+                    display: 'inline-block',
+                    marginTop: 4,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: 'var(--blue)',
+                    background: 'rgba(48,197,255,0.12)',
+                    borderRadius: 4,
+                    padding: '1px 6px',
+                    letterSpacing: 0.3,
+                  }}>
+                    ADMIN
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div style={{ padding: '4px 0' }}>
+                {user?.role === 'admin' && (
+                  <>
+                    <button
+                      onClick={handleAdmin}
+                      style={{
+                        width: '100%',
+                        padding: '9px 14px',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        color: 'var(--text)',
+                        fontFamily: 'var(--font)',
+                      }}
+                    >
+                      Admin
+                    </button>
+                    <div style={{ height: 1, margin: '0 14px', background: 'var(--divider)' }} />
+                  </>
+                )}
+                <button
+                  onClick={handleProfile}
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                    fontFamily: 'var(--font)',
+                  }}
+                >
+                  Profile
+                </button>
+                <div style={{ height: 1, margin: '0 14px', background: 'var(--divider)' }} />
+                <button
+                  onClick={handleSignOut}
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    color: 'var(--score-lo)',
+                    fontFamily: 'var(--font)',
+                  }}
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </header>
   )
 }

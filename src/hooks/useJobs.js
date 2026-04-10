@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { fetchJobs, triggerRefresh, patchJob, createJob, deleteJob, fetchProfile, patchWeights } from '../api.js'
+import { fetchJobs, triggerRefresh, patchJob, createJob, deleteJob, fetchProfile, patchWeights, AuthExpiredError } from '../api.js'
 import { computeAggregate } from '../utils/scoring.js'
+import { applyFilters, DEFAULT_FILTERS } from '../utils/filters.js'
+
+const LAST_VISIT_KEY = 'jobmatch_last_visit'
+const FILTERS_KEY = 'jobmatch_filters'
+
+function loadFilters() {
+  try {
+    const saved = localStorage.getItem(FILTERS_KEY)
+    if (!saved) return DEFAULT_FILTERS
+    return { ...DEFAULT_FILTERS, ...JSON.parse(saved) }
+  } catch {
+    return DEFAULT_FILTERS
+  }
+}
 
 export function useJobs() {
   const [jobs, setJobs] = useState([])
@@ -8,18 +22,15 @@ export function useJobs() {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [lastRefreshed, setLastRefreshed] = useState(null)
-  const [filters, setFilters] = useState({
-    sources: [],
-    remote: 'all',
-    minScore: 0,
-    showExpired: false,
-    sort: 'score_desc',
-    statusFilter: 'all',
-    location: '',
-    hideNoJD: false,
-  })
+  const [filters, setFiltersState] = useState(loadFilters)
+
+  const setFilters = useCallback((next) => {
+    setFiltersState(next)
+    try { localStorage.setItem(FILTERS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }, [])
   const [savedWeights, setSavedWeights] = useState(null)   // loaded from server
   const [liveWeights, setLiveWeights] = useState(null)     // set by slider drag
+  const [profileDimensions, setProfileDimensions] = useState(null) // custom dims from Claude
 
   const mountedRef = useRef(true)
   const timerIdRef = useRef(null)
@@ -36,12 +47,19 @@ export function useJobs() {
     try {
       setLoading(true)
       setError(null)
+      const lastVisitTs = parseInt(localStorage.getItem(LAST_VISIT_KEY) || '0', 10)
       const data = await fetchJobs()
       if (!mountedRef.current) return
-      setJobs([...data].sort((a, b) => (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1)))
+      const withSeen = data.map(job => ({
+        ...job,
+        seen: !job.fetched_at || new Date(job.fetched_at).getTime() <= lastVisitTs,
+      }))
+      localStorage.setItem(LAST_VISIT_KEY, Date.now().toString())
+      setJobs([...withSeen].sort((a, b) => (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1)))
       setLastRefreshed(new Date())
     } catch (err) {
       if (!mountedRef.current) return
+      if (err instanceof AuthExpiredError) return  // AuthContext handles the redirect
       setError(err.message)
     } finally {
       if (mountedRef.current) setLoading(false)
@@ -50,14 +68,17 @@ export function useJobs() {
 
   useEffect(() => { load() }, [load])
 
-  useEffect(() => {
+  const loadProfile = useCallback(() => {
     fetchProfile()
-      .then(({ weights }) => {
+      .then(({ weights, dimensions }) => {
         setSavedWeights(weights)
         setLiveWeights(weights)
+        if (dimensions) setProfileDimensions(dimensions)
       })
-      .catch(err => console.error('[useJobs] fetchProfile failed:', err.message))
+      .catch(err => { if (!(err instanceof AuthExpiredError)) console.error('[useJobs] fetchProfile failed:', err.message) })
   }, [])
+
+  useEffect(() => { loadProfile() }, [loadProfile])
 
   const refresh = useCallback(async () => {
     try {
@@ -81,39 +102,11 @@ export function useJobs() {
       })
     : jobs
 
-  const filteredJobs = allJobsWithLiveScores
-    .filter(job => {
-      if (!filters.showExpired && job.status === 'Expired') return false
-      if (filters.sources.length > 0 && !filters.sources.includes(job.source)) return false
-      if (filters.remote !== 'all' && job.remote !== filters.remote) return false
-      if (filters.minScore > 0 && (job.score_aggregate == null || job.score_aggregate < filters.minScore)) return false
-      if (filters.statusFilter === 'untracked' && job.status && job.status !== 'none') return false
-      if (filters.statusFilter !== 'all' && filters.statusFilter !== 'untracked' && job.status !== filters.statusFilter) return false
-      if (filters.location && !(job.location || '').toLowerCase().includes(filters.location.toLowerCase())) return false
-      if (filters.hideNoJD && !job.description?.trim()) return false
-      return true
-    })
-    .sort((a, b) => {
-      switch (filters.sort) {
-        case 'score_asc':
-          return (a.score_aggregate ?? 11) - (b.score_aggregate ?? 11)
-        case 'newest': {
-          const da = a.posted_at || (a.fetched_at && a.fetched_at.slice(0, 10)) || ''
-          const db_ = b.posted_at || (b.fetched_at && b.fetched_at.slice(0, 10)) || ''
-          return db_.localeCompare(da)
-        }
-        case 'oldest': {
-          const da = a.posted_at || (a.fetched_at && a.fetched_at.slice(0, 10)) || ''
-          const db_ = b.posted_at || (b.fetched_at && b.fetched_at.slice(0, 10)) || ''
-          return da.localeCompare(db_)
-        }
-        case 'company_asc':
-          return (a.company || '').localeCompare(b.company || '')
-        case 'score_desc':
-        default:
-          return (b.score_aggregate ?? -1) - (a.score_aggregate ?? -1)
-      }
-    })
+  const filteredJobs = applyFilters(allJobsWithLiveScores, filters)
+
+  const markSeen = useCallback((id) => {
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, seen: true } : j))
+  }, [])
 
   const updateStatus = useCallback(async (id, updates) => {
     try {
@@ -140,12 +133,16 @@ export function useJobs() {
     setSavedWeights(weights)
   }, [])
 
+  const unseenCount = allJobsWithLiveScores.filter(j => !j.seen).length
+
   return {
     jobs: filteredJobs,
     allJobs: allJobsWithLiveScores,
+    unseenCount,
     loading, refreshing, error, lastRefreshed,
     filters, setFilters,
-    refresh, updateStatus, addJob, removeJob,
+    refresh, reloadJobs: load, reloadProfile: loadProfile, updateStatus, markSeen, addJob, removeJob,
     savedWeights, liveWeights, setLiveWeights, saveWeights,
+    profileDimensions,
   }
 }

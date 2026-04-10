@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { fetchRescoreStatus } from '../api.js'
+import { buildDimList } from '../utils/jobDetail.js'
 
 const DIMENSIONS = [
   {
@@ -39,7 +40,8 @@ const DIMENSIONS = [
   },
 ]
 
-export default function Settings({ liveWeights, setLiveWeights, savedWeights, saveWeights }) {
+
+export default function Settings({ liveWeights, setLiveWeights, savedWeights, saveWeights, profileDimensions }) {
   const [status, setStatus] = useState(null)
   const [doneCount, setDoneCount] = useState(null)
   const [localWeights, setLocalWeights] = useState(liveWeights)
@@ -53,6 +55,7 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
   useEffect(() => () => { clearInterval(pollRef.current); clearTimeout(debounceRef.current) }, [])
 
   const weights = localWeights || liveWeights || {}
+  const dimList = buildDimList(profileDimensions, DIMENSIONS)
 
   function handleSlider(key, value) {
     const next = { ...(localWeights || liveWeights || {}), [key]: value }
@@ -96,14 +99,15 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
 
       {/* Section header — iOS grouped style */}
       <div style={{
-        padding: '20px 16px 6px',
-        fontSize: 13,
-        fontWeight: 400,
-        color: '#8e8e93',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
+        padding: '20px 16px 4px',
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
       }}>
-        Scoring Weights
+        <span style={{ fontSize: 13, fontWeight: 400, color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Scoring Weights
+        </span>
+        {profileDimensions && Object.keys(profileDimensions).length >= 3 && (
+          <span style={{ fontSize: 11, color: 'var(--blue)' }}>✦ personalised</span>
+        )}
       </div>
 
       {/* Grouped table — one cell per dimension */}
@@ -112,13 +116,13 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
         borderTop: '0.5px solid rgba(0,0,0,0.15)',
         borderBottom: '0.5px solid rgba(0,0,0,0.15)',
       }}>
-        {DIMENSIONS.map(({ key, label, description }, i) => {
+        {dimList.map(({ key, label, description }, i) => {
           const value = weights[key] ?? 1
           const weightPct = (value / 5) * 100
           return (
             <div key={key} style={{
               padding: '13px 16px',
-              borderBottom: i < DIMENSIONS.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+              borderBottom: i < dimList.length - 1 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
               background: '#fff',
             }}>
               {/* Label row + weight badge */}

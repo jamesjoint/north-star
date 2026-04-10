@@ -40,6 +40,7 @@ beforeEach(async () => {
   await pool.query('DELETE FROM app_invites')
   await pool.query('DELETE FROM verification')
   await pool.query('DELETE FROM account')
+  await pool.query('DELETE FROM profiles')
   await pool.query('DELETE FROM session')
   await pool.query('DELETE FROM "user"')
 })
@@ -49,6 +50,14 @@ describe('POST /api/invites (admin only)', () => {
     const { cookie } = await seedUser(pool, { role: 'user' })
     const res = await request(app).post('/api/invites').set('Cookie', cookie).send({})
     expect(res.status).toBe(403)
+  })
+
+  it('returns 400 for invalid expiresInDays', async () => {
+    const { cookie } = await seedUser(pool, { role: 'admin' })
+    for (const val of [0, -1, 366, 'abc', 1.5]) {
+      const res = await request(app).post('/api/invites').set('Cookie', cookie).send({ expiresInDays: val })
+      expect(res.status, `expected 400 for expiresInDays=${val}`).toBe(400)
+    }
   })
 
   it('creates an invite and returns code + url', async () => {
@@ -61,6 +70,18 @@ describe('POST /api/invites (admin only)', () => {
     const { rows } = await pool.query(`SELECT * FROM app_invites WHERE code = $1`, [res.body.code])
     expect(rows[0].created_by).toBe(userId)
     expect(rows[0].used_by).toBeNull()
+  })
+
+  it('defaults expiresInDays to 7 when not provided', async () => {
+    const { cookie } = await seedUser(pool, { role: 'admin' })
+    const before = Date.now()
+    const res = await request(app).post('/api/invites').set('Cookie', cookie).send({})
+    expect(res.status).toBe(201)
+    const { rows } = await pool.query(`SELECT expires_at FROM app_invites WHERE code = $1`, [res.body.code])
+    const expiresAt = new Date(rows[0].expires_at).getTime()
+    const sevenDays = 7 * 24 * 60 * 60 * 1000
+    expect(expiresAt).toBeGreaterThanOrEqual(before + sevenDays - 5000)
+    expect(expiresAt).toBeLessThanOrEqual(before + sevenDays + 5000)
   })
 })
 
@@ -107,6 +128,12 @@ describe('DELETE /api/invites/:code (admin only)', () => {
     await request(app).delete('/api/invites/usedcode').set('Cookie', cookie)
     const { rows } = await pool.query(`SELECT * FROM app_invites WHERE code = 'usedcode'`)
     expect(rows).toHaveLength(1)
+  })
+
+  it('returns 204 for non-existent code without error', async () => {
+    const { cookie } = await seedUser(pool, { role: 'admin' })
+    const res = await request(app).delete('/api/invites/doesnotexist').set('Cookie', cookie)
+    expect(res.status).toBe(204)
   })
 })
 
@@ -175,5 +202,46 @@ describe('POST /api/invites/:code/redeem (public)', () => {
 
     const { rows } = await pool.query(`SELECT status FROM "user" WHERE email = 'pending2@b.com'`)
     expect(rows[0].status).toBe('active')
+  })
+
+  it('reactivates a deactivated user and marks invite used', async () => {
+    const { userId } = await seedUser(pool, { role: 'admin' })
+    const deactivatedId = crypto.randomUUID()
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, "emailVerified", role, status) VALUES ($1,'','deact@b.com',true,'user','deactivated')`,
+      [deactivatedId]
+    )
+    await pool.query(
+      `INSERT INTO app_invites (code, created_by, expires_at) VALUES ($1,$2,$3)`,
+      ['reactcode', userId, new Date(Date.now() + 86400000)]
+    )
+    const res = await request(app).post('/api/invites/reactcode/redeem').send({ email: 'deact@b.com' })
+    expect(res.status).toBe(201)
+
+    const { rows } = await pool.query(`SELECT status FROM "user" WHERE email = 'deact@b.com'`)
+    expect(rows[0].status).toBe('active')
+
+    const { rows: inv } = await pool.query(`SELECT used_by FROM app_invites WHERE code = 'reactcode'`)
+    expect(inv[0].used_by).toBe(deactivatedId)
+  })
+
+  it('succeeds for already-active user (marks invite used, returns 201)', async () => {
+    const { userId } = await seedUser(pool, { role: 'admin' })
+    // An already-active user (e.g., from a previous invite)
+    const activeId = crypto.randomUUID()
+    await pool.query(
+      `INSERT INTO "user" (id, name, email, "emailVerified", role, status) VALUES ($1,'','active2@b.com',true,'user','active')`,
+      [activeId]
+    )
+    await pool.query(
+      `INSERT INTO app_invites (code, created_by, expires_at) VALUES ($1,$2,$3)`,
+      ['active-invite', userId, new Date(Date.now() + 86400000)]
+    )
+    const res = await request(app).post('/api/invites/active-invite/redeem').send({ email: 'active2@b.com' })
+    expect(res.status).toBe(201)
+
+    // Invite is still marked as used
+    const { rows: inv } = await pool.query(`SELECT used_by FROM app_invites WHERE code = 'active-invite'`)
+    expect(inv[0].used_by).toBe(activeId)
   })
 })

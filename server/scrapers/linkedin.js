@@ -38,7 +38,11 @@ export async function scrape() {
     return []
   }
 
-  return result.data.elements.map(job => ({
+  return parse(result.data.elements)
+}
+
+export function parse(elements) {
+  return elements.map(job => ({
     title: job.title || job.position || '',
     company: job.companyName || job.company?.name || '',
     location: job.formattedLocation || job.location || 'New York, NY',

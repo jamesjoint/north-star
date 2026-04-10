@@ -1,0 +1,64 @@
+<h2>Navigation — Replace the Bottom Nav</h2>
+<p class="subtitle">Three directions. Pick what feels right.</p>
+
+<div class="options" style="margin-top:16px">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Left sidebar (persistent)</h3>
+      <p style="font-size:12px;color:#aaa;margin:6px 0 10px">Nav lives on the left. Works well with the board switcher — boards can nest under Tracker in the same sidebar.</p>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;display:flex;overflow:hidden;font-size:11px;height:110px">
+        <div style="width:130px;background:rgba(255,255,255,0.04);border-right:1px solid rgba(255,255,255,0.06);padding:10px;flex-shrink:0;display:flex;flex-direction:column;gap:4px">
+          <div style="color:#888;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em">JobMatch ✦</div>
+          <div style="background:#a78bfa;color:#000;border-radius:4px;padding:4px 8px;font-weight:600">💼 Jobs</div>
+          <div style="color:#666;padding:4px 8px;">📋 Tracker</div>
+          <div style="color:#555;padding:2px 8px 2px 20px;font-size:10px">Creator Economy</div>
+          <div style="color:#555;padding:2px 8px 2px 20px;font-size:10px">Fintech</div>
+          <div style="color:#666;padding:4px 8px;">⚙️ Settings</div>
+        </div>
+        <div style="flex:1;padding:10px;color:#555;font-size:11px">Main content</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Top header nav ⭐ Recommended</h3>
+      <p style="font-size:12px;color:#aaa;margin:6px 0 10px">Horizontal tabs in a slim top bar alongside the logo and avatar. Clean, familiar, gives the content full vertical space.</p>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;overflow:hidden;font-size:11px;height:110px">
+        <div style="background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600;color:#fff">JobMatch <span style="color:#a78bfa">✦</span></div>
+          <div style="display:flex;gap:16px">
+            <div style="color:#a78bfa;border-bottom:2px solid #a78bfa;padding-bottom:2px">💼 Jobs</div>
+            <div style="color:#666">📋 Tracker</div>
+            <div style="color:#666">⚙️ Settings</div>
+          </div>
+          <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#34d399);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#000">A</div>
+        </div>
+        <div style="padding:10px;color:#555;font-size:11px">Main content — full height available</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Icon rail (collapsed left sidebar)</h3>
+      <p style="font-size:12px;color:#aaa;margin:6px 0 10px">Thin icon-only strip on the left — Slack/Figma style. Expands to show labels on hover. Very minimal footprint.</p>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;display:flex;overflow:hidden;font-size:11px;height:110px">
+        <div style="width:36px;background:rgba(255,255,255,0.04);border-right:1px solid rgba(255,255,255,0.06);padding:8px 0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="color:#a78bfa;font-size:14px">💼</div>
+          <div style="color:#555;font-size:14px">📋</div>
+          <div style="color:#555;font-size:14px">⚙️</div>
+          <div style="margin-top:auto;width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#34d399);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#000">A</div>
+        </div>
+        <div style="flex:1;padding:10px;color:#555;font-size:11px">Main content — full width available</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Which direction feels right for the new nav?</p>

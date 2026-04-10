@@ -56,9 +56,13 @@ export async function getAllJobs(pool, userId = null) {
   let query, params = []
   if (userId) {
     query = `
-      SELECT j.*, js.score_aggregate, js.score_dimensions, js.coherence_signal
+      SELECT j.*,
+             js.score_aggregate, js.score_dimensions, js.coherence_signal,
+             te.status, te.notes, te.follow_up_date, te.applied_date,
+             te.salary_range, te.board_id, te.id AS entry_id
       FROM jobs j
       LEFT JOIN job_scores js ON js.job_id = j.id AND js.user_id = $1
+      LEFT JOIN tracker_entries te ON te.job_id = j.id AND te.user_id = $1
       WHERE j.deleted = false
       ORDER BY js.score_aggregate DESC NULLS LAST, j.fetched_at DESC
     `
@@ -74,9 +78,13 @@ export async function getJobById(pool, id, userId = null) {
   let row
   if (userId) {
     const { rows } = await pool.query(`
-      SELECT j.*, js.score_aggregate, js.score_dimensions, js.coherence_signal
+      SELECT j.*,
+             js.score_aggregate, js.score_dimensions, js.coherence_signal,
+             te.status, te.notes, te.follow_up_date, te.applied_date,
+             te.salary_range, te.board_id, te.id AS entry_id
       FROM jobs j
       LEFT JOIN job_scores js ON js.job_id = j.id AND js.user_id = $2
+      LEFT JOIN tracker_entries te ON te.job_id = j.id AND te.user_id = $2
       WHERE j.id = $1
     `, [id, userId])
     row = rows[0]
@@ -123,22 +131,153 @@ export async function updateJobDescription(pool, id, description) {
   )
 }
 
-export async function updateTrackerEntry(pool, entryId, userId, updates) {
-  const allowed = ['status', 'follow_up_date', 'notes', 'applied_date']
-  const fields = [], values = []
-  for (const key of allowed) {
-    if (key in updates) {
-      fields.push(`${key} = $${fields.length + 1}`)
-      values.push(updates[key])
-    }
-  }
-  if (!fields.length) return
-  fields.push(`updated_at = now()`)
-  values.push(entryId, userId)
+// ── Boards ────────────────────────────────────────────────────────────────────
+
+export async function getBoards(pool, userId) {
+  const { rows } = await pool.query(
+    `SELECT b.*, COUNT(te.id)::int AS job_count
+     FROM boards b
+     LEFT JOIN tracker_entries te ON te.board_id = b.id
+     WHERE b.user_id = $1
+     GROUP BY b.id
+     ORDER BY b.created_at ASC`,
+    [userId]
+  )
+  return rows
+}
+
+export async function getOrCreateDefaultBoard(pool, userId) {
+  const { rows } = await pool.query(
+    `SELECT id FROM boards WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1`,
+    [userId]
+  )
+  if (rows[0]) return rows[0].id
+  const id = crypto.randomUUID()
   await pool.query(
-    `UPDATE tracker_entries SET ${fields.join(', ')} WHERE id = $${values.length - 1} AND user_id = $${values.length}`,
+    `INSERT INTO boards (id, user_id, name) VALUES ($1, $2, 'Default')`,
+    [id, userId]
+  )
+  return id
+}
+
+export async function createBoard(pool, userId, name, emoji = null) {
+  const id = crypto.randomUUID()
+  await pool.query(
+    `INSERT INTO boards (id, user_id, name, emoji) VALUES ($1, $2, $3, $4)`,
+    [id, userId, name.trim(), emoji]
+  )
+  return id
+}
+
+export async function updateBoard(pool, boardId, userId, { name, emoji }) {
+  const fields = [], values = []
+  if (name !== undefined) { fields.push(`name = $${fields.length + 1}`); values.push(name.trim()) }
+  if (emoji !== undefined) { fields.push(`emoji = $${fields.length + 1}`); values.push(emoji) }
+  if (!fields.length) return
+  values.push(boardId, userId)
+  await pool.query(
+    `UPDATE boards SET ${fields.join(', ')} WHERE id = $${values.length - 1} AND user_id = $${values.length}`,
     values
   )
+}
+
+export async function deleteBoard(pool, boardId, userId) {
+  // Prevent deleting if it's the user's only board
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS cnt FROM boards WHERE user_id = $1`, [userId]
+  )
+  if (rows[0].cnt <= 1) throw new Error('Cannot delete your only board')
+  await pool.query(`DELETE FROM boards WHERE id = $1 AND user_id = $2`, [boardId, userId])
+}
+
+// ── Tracker entries ────────────────────────────────────────────────────────────
+
+export async function upsertTrackerEntry(pool, jobId, userId, boardId, updates) {
+  const id = crypto.randomUUID()
+  const allowed = ['status', 'follow_up_date', 'notes', 'applied_date', 'board_id', 'salary_range']
+  // Build the ON CONFLICT update clause only for fields explicitly provided
+  const setClauses = allowed
+    .filter(k => k in updates)
+    .map(k => `${k} = EXCLUDED.${k}`)
+  setClauses.push('updated_at = now()')
+  // Determine values for INSERT
+  const status        = updates.status        ?? 'Saved'
+  const notes         = updates.notes         ?? null
+  const follow_up     = updates.follow_up_date ?? null
+  const applied_date  = updates.applied_date   ?? null
+  const salary_range  = updates.salary_range   ?? null
+  await pool.query(
+    `INSERT INTO tracker_entries (id, board_id, user_id, job_id, status, notes, follow_up_date, applied_date, salary_range)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (job_id, user_id) DO UPDATE SET ${setClauses.join(', ')}`,
+    [id, boardId, userId, jobId, status, notes, follow_up, applied_date, salary_range]
+  )
+}
+
+export async function removeTrackerEntry(pool, jobId, userId) {
+  await pool.query(
+    `DELETE FROM tracker_entries WHERE job_id = $1 AND user_id = $2`,
+    [jobId, userId]
+  )
+}
+
+// ── Per-user profiles ─────────────────────────────────────────────────────────
+
+export async function getProfile(pool, userId) {
+  const { rows } = await pool.query(`SELECT * FROM profiles WHERE user_id = $1`, [userId])
+  return rows[0] || null
+}
+
+export async function upsertProfileWeights(pool, userId, weights) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, weights, updated_at)
+     VALUES ($1, $2::jsonb, now())
+     ON CONFLICT (user_id) DO UPDATE SET weights = $2::jsonb, updated_at = now()`,
+    [userId, JSON.stringify(weights)]
+  )
+}
+
+export async function upsertProfileBackground(pool, userId, background) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, background, onboarding_done, updated_at)
+     VALUES ($1, $2, true, now())
+     ON CONFLICT (user_id) DO UPDATE SET background = $2, onboarding_done = true, updated_at = now()`,
+    [userId, background]
+  )
+}
+
+export async function upsertProfilePersonality(pool, userId, personality) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, personality, updated_at)
+     VALUES ($1, $2::jsonb, now())
+     ON CONFLICT (user_id) DO UPDATE SET personality = $2::jsonb, updated_at = now()`,
+    [userId, JSON.stringify(personality)]
+  )
+}
+
+export async function upsertProfileDimensions(pool, userId, dimensions) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, dimensions, updated_at)
+     VALUES ($1, $2::jsonb, now())
+     ON CONFLICT (user_id) DO UPDATE SET dimensions = $2::jsonb, updated_at = now()`,
+    [userId, JSON.stringify(dimensions)]
+  )
+}
+
+export async function seedAdminProfile(pool, userId, { background, weights }) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, background, weights, onboarding_done, updated_at)
+     VALUES ($1, $2, $3::jsonb, true, now())
+     ON CONFLICT (user_id) DO NOTHING`,
+    [userId, background, JSON.stringify(weights)]
+  )
+}
+
+function toDateStr(val) {
+  if (!val) return val
+  if (typeof val === 'string') return val.slice(0, 10)
+  if (val instanceof Date) return val.toISOString().slice(0, 10)
+  return val
 }
 
 function deserialize(row) {
@@ -147,6 +286,8 @@ function deserialize(row) {
     ...row,
     score_dimensions: row.score_dimensions
       ? (typeof row.score_dimensions === 'string' ? JSON.parse(row.score_dimensions) : row.score_dimensions)
-      : null
+      : null,
+    follow_up_date: toDateStr(row.follow_up_date),
+    applied_date:   toDateStr(row.applied_date),
   }
 }

@@ -1,77 +1,55 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useAuth } from './contexts/AuthContext.jsx'
 import { useJobs } from './hooks/useJobs.js'
+import { useBoards } from './hooks/useBoards.js'
 import Header from './components/Header.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import JobCard from './components/JobCard.jsx'
 import JobDetail from './components/JobDetail.jsx'
 import Tracker from './components/Tracker.jsx'
 import Settings from './components/Settings.jsx'
-
-const TAB_ICONS = {
-  search:   '♪',
-  tracker:  '☰',
-  settings: '⚙',
-}
+import Profile from './components/Profile.jsx'
+import AdminPanel from './components/AdminPanel.jsx'
+import ScoreBanner from './components/ScoreBanner.jsx'
 
 export default function App() {
+  const { user } = useAuth()
   const {
-    jobs, allJobs, loading, refreshing, error, lastRefreshed,
-    filters, setFilters, refresh, updateStatus, addJob, removeJob,
-    savedWeights, liveWeights, setLiveWeights, saveWeights,
+    jobs, allJobs, unseenCount, loading, refreshing, error, lastRefreshed,
+    filters, setFilters, refresh, reloadJobs, reloadProfile, updateStatus, markSeen, addJob, removeJob,
+    savedWeights, liveWeights, setLiveWeights, saveWeights, profileDimensions,
   } = useJobs()
+  const {
+    boards, activeBoardId, setActiveBoardId,
+    createBoard, renameBoard, deleteBoard: deleteBoardHook, reloadBoards,
+  } = useBoards()
+
+  // After any tracker status change, refresh board counts
+  const updateStatusAndRefreshBoards = useCallback(async (id, updates) => {
+    await updateStatus(id, updates)
+    reloadBoards()
+  }, [updateStatus, reloadBoards])
+
+  const addJobAndRefreshBoards = useCallback(async (data) => {
+    const job = await addJob(data)
+    reloadBoards()
+    return job
+  }, [addJob, reloadBoards])
   const [selectedId, setSelectedId] = useState(null)
   const [tab, setTab] = useState('search')
+  const [prevTab, setPrevTab] = useState('search')
 
   const selectedJob = allJobs.find(j => j.id === selectedId) || null
   const sources = [...new Set(allJobs.map(j => j.source))].sort()
+  const sourceCounts = allJobs.reduce((acc, j) => {
+    if (j.source) acc[j.source] = (acc[j.source] || 0) + 1
+    return acc
+  }, {})
   const trackedCount = allJobs.filter(j => j.status && j.status !== 'none').length
 
   function handleSelect(id) {
     setSelectedId(prev => prev === id ? null : id)
-  }
-
-  function tabBtn(t, label) {
-    const active = tab === t
-    return (
-      <button
-        key={t}
-        onClick={() => setTab(t)}
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-          height: '100%',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: active ? 'var(--blue)' : '#9d9da0',
-          transition: 'color 0.12s',
-          padding: '4px 0 3px',
-          fontFamily: 'var(--font)',
-        }}
-      >
-        <span style={{ fontSize: 20, lineHeight: 1 }}>{TAB_ICONS[t]}</span>
-        <span style={{ fontSize: 10, fontWeight: active ? 600 : 400, letterSpacing: '0.01em', position: 'relative' }}>
-          {label}
-          {t === 'tracker' && trackedCount > 0 && (
-            <span style={{
-              marginLeft: 4,
-              background: 'var(--blue)',
-              color: '#fff',
-              borderRadius: 10,
-              padding: '0 5px',
-              fontSize: 9,
-              fontWeight: 700,
-            }}>
-              {trackedCount}
-            </span>
-          )}
-        </span>
-      </button>
-    )
+    if (id) markSeen(id)
   }
 
   return (
@@ -80,33 +58,25 @@ export default function App() {
       flexDirection: 'column',
       height: '100vh',
       fontFamily: 'var(--font)',
-      background: 'var(--chrome)',
+      background: 'var(--screen)',
     }}>
-      <Header lastRefreshed={lastRefreshed} refreshing={refreshing} onRefresh={refresh} />
+      <Header
+        tab={tab}
+        setTab={setTab}
+        trackedCount={trackedCount}
+        unseenCount={unseenCount}
+        refreshing={refreshing}
+        onRefresh={refresh}
+        prevTab={prevTab}
+        setPrevTab={setPrevTab}
+      />
 
-      {/* ── Tab bar — iOS aluminum style ── */}
-      <div style={{
-        height: 49,
-        background: 'linear-gradient(180deg, #f0f0f0 0%, #d2d2d2 100%)',
-        borderBottom: '1px solid #a8a8a8',
-        display: 'flex',
-        flexShrink: 0,
-        boxShadow: '0 1px 0 rgba(255,255,255,0.8) inset',
-      }}>
-        {tabBtn('search', 'Jobs')}
-        {tabBtn('tracker', 'Tracker')}
-        {tabBtn('settings', 'Settings')}
-      </div>
-
-      {/* ── Screen area ── */}
+      {/* ── Content area ── */}
       <div style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: 'var(--screen)',
-        /* Inset border shadow for "LCD inside bezel" depth */
-        boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.08)',
       }}>
 
         {/* Tracker */}
@@ -120,8 +90,14 @@ export default function App() {
               background: 'var(--screen)',
             }}>
               <Tracker
-                jobs={allJobs} onUpdate={updateStatus} onAddJob={addJob}
+                jobs={allJobs} onUpdate={updateStatusAndRefreshBoards} onAddJob={addJobAndRefreshBoards}
                 onDelete={removeJob} onSelect={handleSelect} selectedId={selectedId}
+                boards={boards}
+                activeBoardId={activeBoardId}
+                onSelectBoard={setActiveBoardId}
+                onCreateBoard={createBoard}
+                onRenameBoard={renameBoard}
+                onDeleteBoard={deleteBoardHook}
               />
             </div>
             {selectedJob && (() => {
@@ -132,7 +108,7 @@ export default function App() {
                   <JobDetail
                     job={selectedJob}
                     onClose={() => setSelectedId(null)}
-                    onStatusChange={updateStatus}
+                    onStatusChange={updateStatusAndRefreshBoards}
                     onPrev={idx > 0 ? () => setSelectedId(trackedList[idx - 1].id) : null}
                     onNext={idx < trackedList.length - 1 ? () => setSelectedId(trackedList[idx + 1].id) : null}
                   />
@@ -143,21 +119,44 @@ export default function App() {
         )}
 
         {/* Settings — always mounted so weights load before user navigates here */}
-        <div style={{ flex: 1, overflowY: 'auto', background: 'var(--screen)', display: tab === 'settings' ? 'block' : 'none' }}>
+        <div style={{
+          flex: 1, overflowY: 'auto', background: 'var(--screen)',
+          display: tab === 'settings' ? 'block' : 'none',
+        }}>
           <Settings
             liveWeights={liveWeights}
             setLiveWeights={setLiveWeights}
             savedWeights={savedWeights}
             saveWeights={saveWeights}
+            profileDimensions={profileDimensions}
           />
         </div>
+
+        {/* Profile */}
+        {tab === 'profile' && (
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--screen)' }}>
+            <Profile
+              onBack={() => setTab(prevTab || 'search')}
+              onGoToSettings={() => setTab('settings')}
+              onProfileChange={reloadProfile}
+            />
+          </div>
+        )}
+
+        {/* Admin */}
+        {tab === 'admin' && (
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--screen)' }}>
+            <AdminPanel onBack={() => setTab(prevTab || 'search')} />
+          </div>
+        )}
 
         {/* Job Search */}
         {tab === 'search' && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-            <FilterBar sources={sources} filters={filters} onChange={setFilters} />
+            <FilterBar sources={sources} sourceCounts={sourceCounts} filters={filters} onChange={setFilters} />
+            <ScoreBanner onDone={reloadJobs} />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              {/* List — white cell background */}
+              {/* List */}
               <div style={{
                 flex: selectedJob ? '0 0 380px' : 1,
                 overflowY: 'auto',
@@ -165,7 +164,6 @@ export default function App() {
                 flexDirection: 'column',
                 background: 'var(--screen)',
               }}>
-                {/* List header — iOS section header style */}
                 <div style={{
                   padding: '8px 16px 4px',
                   borderBottom: '0.5px solid rgba(0,0,0,0.12)',
@@ -193,7 +191,7 @@ export default function App() {
                     color: 'var(--text-3)', textAlign: 'center', marginTop: 60,
                     fontSize: 14, padding: '0 32px', lineHeight: 1.6,
                   }}>
-                    hi ashley, you're a superstar and one day you won't need this
+                    No jobs match your filters. Try adjusting them above, or refresh to scan for new listings.
                   </p>
                 )}
                 {jobs.map(job => (
@@ -202,7 +200,7 @@ export default function App() {
                     job={job}
                     onSelect={handleSelect}
                     selected={job.id === selectedId}
-                    onStatusChange={updateStatus}
+                    onStatusChange={updateStatusAndRefreshBoards}
                     onDelete={removeJob}
                   />
                 ))}
@@ -216,7 +214,7 @@ export default function App() {
                     <JobDetail
                       job={selectedJob}
                       onClose={() => setSelectedId(null)}
-                      onStatusChange={updateStatus}
+                      onStatusChange={updateStatusAndRefreshBoards}
                       onPrev={idx > 0 ? () => setSelectedId(jobs[idx - 1].id) : null}
                       onNext={idx < jobs.length - 1 ? () => setSelectedId(jobs[idx + 1].id) : null}
                     />
@@ -227,7 +225,6 @@ export default function App() {
           </div>
         )}
       </div>
-
     </div>
   )
 }

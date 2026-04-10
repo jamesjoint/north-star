@@ -1,0 +1,73 @@
+<h2>Section 4: Multiple Tracker Boards</h2>
+<p class="subtitle">Two options for how board-switching lives in the UI</p>
+
+<div class="options" style="margin-top:16px">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Board switcher inside the Tracker tab</h3>
+      <p style="color:#aaa;font-size:13px;margin:6px 0 12px">The bottom nav stays the same (Jobs / Tracker / Settings). Inside the Tracker tab, a dropdown or pill tabs at the top let you switch boards.</p>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-size:12px">
+        <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+          <span style="color:#aaa">Board:</span>
+          <span style="color:#fff;font-weight:600">Creator Economy Jobs ▾</span>
+          <span style="color:#a78bfa;font-size:11px;cursor:pointer">+ New board</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="background:#a78bfa;color:#000;border-radius:12px;padding:3px 10px;font-size:11px;font-weight:600">Creator Economy Jobs</div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:3px 10px;font-size:11px;color:#888">Fintech Roles</div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:12px;padding:3px 10px;font-size:11px;color:#888">Backup Options</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#666">↳ Job list scoped to active board below</div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Nav stays clean — no extra tab</li><li>Feels like a filter, not a mode switch</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Slightly buried if you switch boards frequently</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Boards as a sidebar / drawer ⭐ Recommended</h3>
+      <p style="color:#aaa;font-size:13px;margin:6px 0 12px">A slide-in sidebar (swipe or hamburger) shows all your boards. Tapping one loads it. Active board name shows in the Tracker tab header.</p>
+      <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-size:12px;display:flex;gap:10px">
+        <div style="background:rgba(255,255,255,0.06);border-radius:6px;padding:8px;width:130px;flex-shrink:0">
+          <div style="font-size:10px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">My Boards</div>
+          <div style="background:#a78bfa;color:#000;border-radius:4px;padding:4px 8px;font-size:11px;font-weight:600;margin-bottom:4px">Creator Economy</div>
+          <div style="padding:4px 8px;font-size:11px;color:#888;margin-bottom:4px">Fintech Roles</div>
+          <div style="padding:4px 8px;font-size:11px;color:#888;margin-bottom:8px">Backup Options</div>
+          <div style="padding:4px 8px;font-size:11px;color:#a78bfa;border:1px dashed rgba(167,139,250,0.4);border-radius:4px;text-align:center">+ New board</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#aaa;font-weight:600;margin-bottom:6px">Creator Economy ✎</div>
+          <div style="font-size:10px;color:#555;line-height:1.8">
+            Applied: 3<br>
+            Interview: 1<br>
+            Saved: 7<br>
+            Rejected: 2
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Boards feel like first-class objects</li><li>Easy to rename, reorder, delete</li><li>Stats per board at a glance</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Extra interaction to open sidebar</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px">
+  <div class="label">Board operations (both options)</div>
+  <ul style="font-size:13px;line-height:2;margin:6px 0 0;padding-left:16px;color:#ccc">
+    <li>Create board — name it, optionally give it a color or emoji</li>
+    <li>Rename / delete board</li>
+    <li>Move a job from one board to another</li>
+    <li>A job can exist on multiple boards simultaneously</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Which layout feels right for switching between boards?</p>

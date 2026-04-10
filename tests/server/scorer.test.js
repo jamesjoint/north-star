@@ -119,3 +119,172 @@ describe('scoreJob', () => {
     expect(result.aggregate).toBeCloseTo(expected, 2)
   })
 })
+// APPENDED TESTS
+
+describe('scoreJob — additional edge cases', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }]
+          })
+        }
+      }
+    })
+  })
+
+  test('enriches dimension objects with their label from dimension definitions', async () => {
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
+    // Default dimensions map core_mechanism → label: 'Connector Fit'
+    expect(result.dimensions.core_mechanism.label).toBe('Connector Fit')
+    expect(result.dimensions.domain_gap.label).toBe('Domain Fit')
+  })
+
+  test('uses custom dimensions from profile when 3+ keys are present', async () => {
+    const customDimResponse = {
+      dimensions: {
+        creativity:   { score: 9, reasoning: 'Highly creative.' },
+        impact:       { score: 7, reasoning: 'Clear impact.' },
+        culture_fit:  { score: 8, reasoning: 'Great values match.' },
+      },
+      summary: 'Strong creative fit.'
+    }
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: JSON.stringify(customDimResponse) }]
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const profileWithDims = {
+      ...MOCK_PROFILE,
+      dimensions: {
+        creativity:  { label: 'Creativity',  description: 'Creative capacity', weight: 1 },
+        impact:      { label: 'Impact',      description: 'Business impact',   weight: 1 },
+        culture_fit: { label: 'Culture Fit', description: 'Values alignment',  weight: 1 },
+      }
+    }
+    const result = await scoreJob({ title: 'PM', description: 'desc' }, profileWithDims)
+    expect(result.dimensions.creativity.score).toBe(9)
+    expect(result.dimensions.creativity.label).toBe('Creativity')
+    expect(result.aggregate).toBe(8) // (9+7+8)/3
+  })
+
+  test('falls back to "(no description provided)" when job has no description', async () => {
+    let capturedPrompt
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async (opts) => {
+            capturedPrompt = opts.messages[0].content
+            return { content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }] }
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await scoreJob({ title: 'PM', description: null }, MOCK_PROFILE)
+    expect(capturedPrompt).toContain('(no description provided)')
+  })
+})
+
+describe('scoreJob — error handling and personality', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  test('throws a descriptive error when Claude returns unparseable JSON', async () => {
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: 'This is definitely not JSON, sorry!' }]
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await expect(scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE))
+      .rejects.toThrow('Scorer: invalid JSON from Claude')
+  })
+
+  test('includes personality block in system prompt when profile has personality', async () => {
+    let capturedSystemPrompt
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async (opts) => {
+            capturedSystemPrompt = opts.system
+            return { content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }] }
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const profileWithPersonality = {
+      ...MOCK_PROFILE,
+      personality: { mbti: 'INTJ', enneagram: '5w4' },
+    }
+    await scoreJob({ title: 'PM', description: 'desc' }, profileWithPersonality)
+    expect(capturedSystemPrompt).toContain('Myers-Briggs: INTJ')
+    expect(capturedSystemPrompt).toContain('Enneagram: 5w4')
+    expect(capturedSystemPrompt).toContain('Personality context')
+  })
+
+  test('does not include personality section when personality is null', async () => {
+    let capturedSystemPrompt
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async (opts) => {
+            capturedSystemPrompt = opts.system
+            return { content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }] }
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await scoreJob({ title: 'PM', description: 'desc' }, { ...MOCK_PROFILE, personality: null })
+    expect(capturedSystemPrompt).not.toContain('Personality context')
+  })
+
+  test('custom dim weights use dimension.weight as fallback when profile.weights is absent', async () => {
+    const customDimResponse = {
+      dimensions: {
+        creativity: { score: 8, reasoning: 'Creative' },
+        impact:     { score: 6, reasoning: 'Impact' },
+        culture:    { score: 10, reasoning: 'Culture' },
+      },
+      summary: 'Good fit.'
+    }
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: JSON.stringify(customDimResponse) }]
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    const profileWithCustomDims = {
+      background: 'Creative professional.',
+      weights: {}, // no per-dim weights
+      dimensions: {
+        creativity: { label: 'Creativity', description: 'Creative capacity', weight: 2 },
+        impact:     { label: 'Impact',     description: 'Business impact',   weight: 1 },
+        culture:    { label: 'Culture',    description: 'Culture alignment', weight: 1 },
+      }
+    }
+    const result = await scoreJob({ title: 'Designer', description: 'desc' }, profileWithCustomDims)
+    // With weights 2,1,1: (8*2 + 6*1 + 10*1) / 4 = 32/4 = 8
+    expect(result.aggregate).toBe(8)
+  })
+})
+

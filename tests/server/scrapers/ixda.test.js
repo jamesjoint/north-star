@@ -32,3 +32,37 @@ test('parse detects hybrid location', () => {
 })
 
 test('returns empty array for unrecognized HTML', () => { expect(parse('<html></html>')).toEqual([]) })
+
+test('skips items without title or href', () => {
+  const html = `<div class="jobs-list">
+    <div class="job-item">
+      <h2 class="job-title"><a href="/jobs/abc">  </a></h2>
+      <span class="company">Acme</span>
+    </div>
+  </div>`
+  expect(parse(html)).toHaveLength(0)
+})
+
+test('prepends ixda.org for relative hrefs', () => {
+  const html = `<div class="jobs-list">
+    <div class="job-item">
+      <h2 class="job-title"><a href="/jobs/xyz">UX Lead</a></h2>
+      <span class="company">Design Co</span>
+      <span class="location">Remote</span>
+    </div>
+  </div>`
+  const jobs = parse(html)
+  expect(jobs[0].url).toBe('https://ixda.org/jobs/xyz')
+})
+
+test('extracts description from .description element', () => {
+  const html = `<div class="jobs-list">
+    <div class="job-item">
+      <h2 class="job-title"><a href="https://ixda.org/jobs/1">UX Designer</a></h2>
+      <span class="company">Agency</span>
+      <div class="description">Create engaging experiences.</div>
+    </div>
+  </div>`
+  const jobs = parse(html)
+  expect(jobs[0].description).toBe('Create engaging experiences.')
+})

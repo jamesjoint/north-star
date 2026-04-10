@@ -61,4 +61,53 @@ describe('themuse scraper', () => {
     expect(jobs.map(j => j.title)).toContain('Job A')
     expect(jobs.map(j => j.title)).toContain('Job B')
   })
+
+  test('strips HTML tags from description', async () => {
+    axios.get.mockResolvedValue({
+      data: {
+        results: [{
+          name: 'PM',
+          company: { name: 'Acme' },
+          locations: [{ name: 'New York, NY' }],
+          refs: { landing_page: 'https://www.themuse.com/jobs/1' },
+          publication_date: null,
+          contents: '<p>Lead product.</p><br><strong>Must have:</strong> 5+ years.',
+        }],
+        total: 1,
+        page_count: 1,
+      }
+    })
+    const { scrape } = await import('../../../server/scrapers/themuse.js?html=' + Date.now())
+    const jobs = await scrape()
+    expect(jobs[0].description).not.toContain('<p>')
+    expect(jobs[0].description).toContain('Lead product.')
+    expect(jobs[0].description).toContain('Must have:')
+  })
+
+  test('sets location to empty string when locations array is empty', async () => {
+    axios.get.mockResolvedValue({
+      data: {
+        results: [{
+          name: 'Remote PM',
+          company: { name: 'Acme' },
+          locations: [],
+          refs: { landing_page: 'https://www.themuse.com/jobs/2' },
+          publication_date: null,
+          contents: '',
+        }],
+        total: 1,
+        page_count: 1,
+      }
+    })
+    const { scrape } = await import('../../../server/scrapers/themuse.js?locs=' + Date.now())
+    const jobs = await scrape()
+    expect(jobs[0].location).toBe('')
+  })
+
+  test('returns empty array when all pages are empty', async () => {
+    axios.get.mockResolvedValue({ data: { results: [], page_count: 1 } })
+    const { scrape } = await import('../../../server/scrapers/themuse.js?empty=' + Date.now())
+    const jobs = await scrape()
+    expect(jobs).toEqual([])
+  })
 })

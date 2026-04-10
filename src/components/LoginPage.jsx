@@ -1,11 +1,17 @@
 import { useState } from 'react'
-import { signup, sendMagicLink } from '../api.js'
+import { signup, sendMagicLink, redeemInvite } from '../api.js'
+
+function getInviteCode() {
+  return new URLSearchParams(window.location.search).get('invite')
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [stage, setStage] = useState('enter') // 'enter' | 'sent' | 'waitlist' | 'error'
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const inviteCode = getInviteCode()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -16,6 +22,24 @@ export default function LoginPage() {
     setLoading(true)
     setMessage('')
     try {
+      if (inviteCode) {
+        // Redeem invite path
+        const res = await redeemInvite(inviteCode, email)
+        const body = await res.json().catch(() => ({}))
+        if (res.ok) {
+          setStage('sent')
+          return
+        }
+        if (res.status === 409) {
+          // Already used — try signing in anyway
+          const magicRes = await sendMagicLink(email)
+          if (magicRes.ok) { setStage('sent'); return }
+        }
+        setMessage(body.error || 'This invite link is no longer valid.')
+        setStage('error')
+        return
+      }
+
       // Try magic link first (works if user already exists and is active)
       const magicRes = await sendMagicLink(email)
       if (magicRes.ok) {
@@ -73,10 +97,12 @@ export default function LoginPage() {
         boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
       }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--text-1)' }}>
-          Job Search
+          {inviteCode ? "You've been invited" : 'JobMatch'}
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 28 }}>
-          Enter your email to sign in or request access.
+          {inviteCode
+            ? 'Enter your email to activate your account and get a sign-in link.'
+            : 'Enter your email to sign in or request access.'}
         </p>
 
         {(stage === 'sent') && (

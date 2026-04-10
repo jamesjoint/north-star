@@ -4,6 +4,7 @@ buildCommand = "npm install && npm run build"
 
 [deploy]
 startCommand = "node server/index.js"
+releaseCommand = "npm run db:schema"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"

@@ -1,0 +1,40 @@
+<h2>Architecture Approaches</h2>
+<p class="subtitle">Three ways to evolve the job search app into a multi-user product</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Minimal footprint — SQLite + bolt-on auth</h3>
+      <p>Keep the existing Express + SQLite stack. Add user tables, scope existing tables to users, add magic link auth with a lightweight library (e.g. <strong>Lucia</strong> or <strong>better-auth</strong>). Migrate SQLite to <strong>Turso</strong> (cloud-native SQLite, zero schema changes needed).</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Least rewrite — existing queries mostly unchanged</li><li>Fast to ship</li><li>Low complexity</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Turso is another vendor dependency</li><li>SQLite has limited concurrency for shared job scoring jobs</li><li>Feels "bolted on" as scale grows</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full-stack upgrade — PostgreSQL + custom auth ⭐ Recommended</h3>
+      <p>Migrate from SQLite to <strong>PostgreSQL</strong> (on Railway or Supabase). Add <strong>better-auth</strong> for magic link auth. Redesign the data model cleanly for multi-tenancy: shared <code>jobs</code> table, per-user <code>scores</code>, <code>boards</code>, and <code>tracker_entries</code>.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Clean multi-tenant data model</li><li>Postgres handles concurrent scoring jobs well</li><li>Own everything — no lock-in</li><li>Standard stack, easy to reason about</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More upfront work — schema migration, query updates</li><li>Slightly longer to first working version</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Backend-as-a-service — Supabase</h3>
+      <p>Replace the database and auth layer with <strong>Supabase</strong> (managed Postgres + built-in magic link auth + row-level security). Keep Express for the API and scraping logic, but let Supabase handle auth, user management, and DB hosting.</p>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Magic links work out-of-the-box</li><li>Row-level security enforces user data isolation automatically</li><li>Dashboard for DB inspection is handy</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Supabase vendor lock-in</li><li>Free tier has pausing behavior that's annoying for invite-only apps</li><li>Mixes two auth systems (Express sessions + Supabase JWTs)</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
