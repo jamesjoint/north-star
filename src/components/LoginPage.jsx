@@ -97,7 +97,7 @@ export default function LoginPage() {
         boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
       }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8, color: 'var(--text-1)' }}>
-          {inviteCode ? "You've been invited" : 'JobMatch'}
+          {inviteCode ? "You've been invited" : 'North Star'}
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 28 }}>
           {inviteCode

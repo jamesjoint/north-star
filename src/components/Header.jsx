@@ -68,7 +68,7 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
         color: 'var(--text-2)',
       }}>
         <span style={{ color: 'var(--blue)', fontSize: 17 }}>✦</span>
-        JobMatch
+        North Star
       </div>
 
       {/* Center tab nav */}
