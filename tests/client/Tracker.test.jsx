@@ -29,6 +29,7 @@ function makeJob(overrides = {}) {
     applied_date: '2026-04-01',
     notes: '',
     salary_range: '',
+    direct_link: null,
     follow_up_date: null,
     url: 'https://example.com/job/1',
     description: null,
@@ -520,5 +521,60 @@ describe('Tracker — board rename — blur commits', () => {
     // No change to input value — press Enter immediately
     fireEvent.keyDown(screen.getByDisplayValue('My Job Search'), { key: 'Enter' })
     expect(onRenameBoard).not.toHaveBeenCalled()
+  })
+})
+
+describe('Tracker — Direct Link field', () => {
+  test('shows "Direct Link" column header', () => {
+    const jobs = [makeJob()]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} />)
+    expect(screen.getByText('Direct Link')).toBeInTheDocument()
+  })
+
+  test('renders Direct Link input with placeholder when no URL saved', () => {
+    const jobs = [makeJob({ direct_link: null })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} />)
+    expect(screen.getByPlaceholderText('Paste link…')).toBeInTheDocument()
+  })
+
+  test('populates Direct Link input with saved URL', () => {
+    const jobs = [makeJob({ direct_link: 'https://greenhouse.io/jobs/123' })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} />)
+    expect(screen.getByDisplayValue('https://greenhouse.io/jobs/123')).toBeInTheDocument()
+  })
+
+  test('shows external link icon when direct_link is set', () => {
+    const jobs = [makeJob({ direct_link: 'https://greenhouse.io/jobs/123' })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} />)
+    const link = screen.getByTitle('Open direct link')
+    expect(link).toBeInTheDocument()
+    expect(link).toHaveAttribute('href', 'https://greenhouse.io/jobs/123')
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
+  test('does not show link icon when direct_link is null', () => {
+    const jobs = [makeJob({ direct_link: null })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} />)
+    expect(screen.queryByTitle('Open direct link')).not.toBeInTheDocument()
+  })
+
+  test('calls onUpdate with direct_link on blur', () => {
+    const onUpdate = vi.fn()
+    const jobs = [makeJob({ id: 'j1', direct_link: null })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} onUpdate={onUpdate} />)
+    const input = screen.getByPlaceholderText('Paste link…')
+    fireEvent.change(input, { target: { value: 'https://lever.co/jobs/abc' } })
+    fireEvent.blur(input)
+    expect(onUpdate).toHaveBeenCalledWith('j1', { direct_link: 'https://lever.co/jobs/abc' })
+  })
+
+  test('calls onUpdate with null when cleared', () => {
+    const onUpdate = vi.fn()
+    const jobs = [makeJob({ id: 'j1', direct_link: 'https://example.com' })]
+    render(<Tracker {...DEFAULT_PROPS} jobs={jobs} onUpdate={onUpdate} />)
+    const input = screen.getByDisplayValue('https://example.com')
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.blur(input)
+    expect(onUpdate).toHaveBeenCalledWith('j1', { direct_link: null })
   })
 })

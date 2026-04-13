@@ -129,6 +129,7 @@ const inputStyle = {
 export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, selectedId, boards = [], activeBoardId, onSelectBoard, onCreateBoard, onRenameBoard, onDeleteBoard }) {
   const [localNotes, setLocalNotes] = useState({})
   const [localSalary, setLocalSalary] = useState({})
+  const [localDirectLink, setLocalDirectLink] = useState({})
   const [expandedJD, setExpandedJD] = useState(null)
   const [localJD, setLocalJD] = useState({})
   const [showForm, setShowForm] = useState(false)
@@ -421,7 +422,7 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Title', 'Company', 'Score', 'Status', ...(boards.length > 1 ? ['Board'] : []), 'Applied', 'Follow-up', 'Salary', 'Notes', 'JD', 'Source', 'Link', ''].map(h => (
+                {['Title', 'Company', 'Score', 'Status', ...(boards.length > 1 ? ['Board'] : []), 'Applied', 'Follow-up', 'Salary', 'Notes', 'Direct Link', 'JD', 'Source', 'Link', ''].map(h => (
                   <th key={h} style={{ ...TH, textAlign: h === 'Score' ? 'center' : 'left', minWidth: h === 'Notes' ? 160 : undefined }}>
                     {h}
                   </th>
@@ -520,6 +521,35 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
                           setLocalNotes(prev => { const n = { ...prev }; delete n[job.id]; return n })
                         }}
                         style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--divider)', background: 'var(--screen-raised)', color: 'var(--text)', width: '100%', minWidth: 140, fontFamily: 'var(--font)' }} />
+                    </td>
+                    <td style={TD}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="text"
+                          value={job.id in localDirectLink ? localDirectLink[job.id] : (job.direct_link || '')}
+                          placeholder="Paste link…"
+                          onChange={e => setLocalDirectLink(prev => ({ ...prev, [job.id]: e.target.value }))}
+                          onBlur={e => {
+                            onUpdate(job.id, { direct_link: e.target.value || null })
+                            setLocalDirectLink(prev => { const n = { ...prev }; delete n[job.id]; return n })
+                          }}
+                          style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--divider)', background: 'var(--screen-raised)', color: 'var(--text)', width: 130, fontFamily: 'var(--font)' }}
+                        />
+                        {(job.id in localDirectLink ? localDirectLink[job.id] : job.direct_link) && (
+                          <a
+                            href={job.id in localDirectLink ? localDirectLink[job.id] : job.direct_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open direct link"
+                            style={{ color: 'var(--blue)', opacity: 0.7, flexShrink: 0, lineHeight: 0 }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                              <path d="M7 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                              <path d="M10 2h4v4M14 2 8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </a>
+                        )}
+                      </div>
                     </td>
                     <td style={TD}>
                       {expandedJD === job.id ? (
