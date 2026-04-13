@@ -635,6 +635,15 @@ describe('PATCH /api/profile/name', () => {
     expect(profile.body.first_name).toBe('Ada')
     expect(profile.body.last_name).toBeNull()
   })
+
+  test('returns 400 when first_name is missing', async () => {
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/profile/name')
+      .set('Cookie', sessionCookie)
+      .send({ last_name: 'Lovelace' })
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('PATCH /api/profile/dimensions', () => {

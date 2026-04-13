@@ -267,6 +267,12 @@ export function createApp(pool, pipeline = null) {
 
   app.patch('/api/profile/name', async (req, res) => {
     const { first_name, last_name } = req.body
+    if (typeof first_name !== 'string' || !first_name.trim()) {
+      return res.status(400).json({ error: 'first_name string required' })
+    }
+    if (last_name !== null && last_name !== undefined && typeof last_name !== 'string') {
+      return res.status(400).json({ error: 'last_name must be a string or null' })
+    }
     await upsertProfileName(pool, req.user.id, first_name, last_name)
     res.json({ ok: true })
   })
