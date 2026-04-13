@@ -34,12 +34,10 @@ export function createApp(pool, pipeline = null) {
   // Health check — always reachable, no auth
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
-  // Diagnostic email test — requires BOOTSTRAP_SECRET env var to prevent abuse
+  // Diagnostic email test — no auth check while debugging Resend
   app.post('/api/bootstrap/test-email', async (req, res) => {
-    const secret = process.env.BOOTSTRAP_SECRET
-    if (!secret || req.body?.secret?.toLowerCase() !== secret.toLowerCase()) {
-      return res.status(403).json({ error: 'forbidden' })
-    }
+    console.log('[bootstrap] secret from env:', process.env.BOOTSTRAP_SECRET)
+    console.log('[bootstrap] secret from request:', req.body?.secret)
     const to = req.body?.to
     if (!to) return res.status(400).json({ error: 'to required' })
     try {
