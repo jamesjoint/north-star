@@ -9,6 +9,7 @@ import {
   upsertTrackerEntry, removeTrackerEntry,
   getProfile, upsertProfileWeights, upsertProfileBackground,
   upsertProfilePersonality, upsertProfileDimensions, seedAdminProfile,
+  upsertProfileName,
 } from '../../server/db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -528,5 +529,19 @@ describe('profiles', () => {
     await seedAdminProfile(pool, userId, { background: 'Should not overwrite', weights: {} })
     const profile = await getProfile(pool, userId)
     expect(profile.background).toBe('Original background')
+  })
+
+  test('upsertProfileName saves and retrieves first_name and last_name', async () => {
+    await upsertProfileName(pool, userId, 'Ada', 'Lovelace')
+    const profile = await getProfile(pool, userId)
+    expect(profile.first_name).toBe('Ada')
+    expect(profile.last_name).toBe('Lovelace')
+  })
+
+  test('upsertProfileName allows null last_name', async () => {
+    await upsertProfileName(pool, userId, 'Ada', null)
+    const profile = await getProfile(pool, userId)
+    expect(profile.first_name).toBe('Ada')
+    expect(profile.last_name).toBeNull()
   })
 })

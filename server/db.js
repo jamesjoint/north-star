@@ -265,6 +265,16 @@ export async function upsertProfileDimensions(pool, userId, dimensions) {
   )
 }
 
+export async function upsertProfileName(pool, userId, firstName, lastName) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, first_name, last_name, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (user_id) DO UPDATE
+       SET first_name = $2, last_name = $3, updated_at = now()`,
+    [userId, firstName || null, lastName || null]
+  )
+}
+
 export async function seedAdminProfile(pool, userId, { background, weights }) {
   await pool.query(
     `INSERT INTO profiles (user_id, background, weights, onboarding_done, updated_at)

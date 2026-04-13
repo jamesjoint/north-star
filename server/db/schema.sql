@@ -123,6 +123,26 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Idempotently add first_name column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'first_name'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN first_name text;
+  END IF;
+END $$;
+
+-- Idempotently add last_name column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'last_name'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN last_name text;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS profiles (
   user_id          text        NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,
   background       text,
