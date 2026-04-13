@@ -95,7 +95,7 @@ export function createApp(pool, pipeline = null) {
 
   app.patch('/api/jobs/:id', async (req, res) => {
     const userId = req.user?.id
-    const { status, follow_up_date, notes, applied_date, board_id, salary_range } = req.body
+    const { status, follow_up_date, notes, applied_date, board_id, salary_range, direct_link } = req.body
     const updates = {}
     if (status !== undefined) updates.status = status
     if (follow_up_date !== undefined) updates.follow_up_date = follow_up_date
@@ -103,6 +103,7 @@ export function createApp(pool, pipeline = null) {
     if (applied_date !== undefined) updates.applied_date = applied_date
     if (board_id !== undefined) updates.board_id = board_id
     if (salary_range !== undefined) updates.salary_range = salary_range
+    if (direct_link !== undefined) updates.direct_link = direct_link
 
     // Auto-set applied_date when status changes to Applied
     if (status === 'Applied' && !('applied_date' in updates)) {

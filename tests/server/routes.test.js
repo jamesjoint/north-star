@@ -383,6 +383,32 @@ describe('PATCH /api/jobs/:id (tracker)', () => {
     expect(res.body.status).toBe('Applied')  // preserved
   })
 
+  test('sets and retrieves direct_link', async () => {
+    const id = await upsertJob(pool, SAMPLE_JOB)
+    const app = createApp(pool)
+    // Must have a tracker entry first
+    await request(app).patch(`/api/jobs/${id}`).set('Cookie', sessionCookie).send({ status: 'Applied' })
+    const res = await request(app)
+      .patch(`/api/jobs/${id}`)
+      .set('Cookie', sessionCookie)
+      .send({ direct_link: 'https://greenhouse.io/jobs/789' })
+    expect(res.status).toBe(200)
+    expect(res.body.direct_link).toBe('https://greenhouse.io/jobs/789')
+    expect(res.body.status).toBe('Applied') // preserved
+  })
+
+  test('clears direct_link when sent as null', async () => {
+    const id = await upsertJob(pool, SAMPLE_JOB)
+    const app = createApp(pool)
+    await request(app).patch(`/api/jobs/${id}`).set('Cookie', sessionCookie).send({ status: 'Applied', direct_link: 'https://example.com' })
+    const res = await request(app)
+      .patch(`/api/jobs/${id}`)
+      .set('Cookie', sessionCookie)
+      .send({ direct_link: null })
+    expect(res.status).toBe(200)
+    expect(res.body.direct_link).toBeNull()
+  })
+
   test('GET /api/jobs returns persisted status after patch', async () => {
     const id = await upsertJob(pool, SAMPLE_JOB)
     const app = createApp(pool)
