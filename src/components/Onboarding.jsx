@@ -126,7 +126,7 @@ function GeneratingStep({ onNext }) {
       <p style={{ fontSize: 14, color: 'var(--text-3)', lineHeight: 1.6, marginBottom: 32 }}>
         {timedOut
           ? 'Taking longer than usual. Wait or skip — dimensions will be ready when you return.'
-          : 'Claude is reading your background and generating custom scoring dimensions.'}
+          : 'Reading your background and generating custom scoring dimensions.'}
       </p>
       {!timedOut && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 32 }}>
@@ -301,7 +301,7 @@ function ReviewStep({ dimensions, initialWeights, onComplete }) {
         Your scoring dimensions
       </h2>
       <p style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 24, lineHeight: 1.5 }}>
-        Claude generated these from your background. Adjust weights to match what matters most.
+        Generated from your background. Adjust weights to match what matters most.
       </p>
       <div style={{ background: '#fff', borderRadius: 12, border: '0.5px solid rgba(0,0,0,0.12)', overflow: 'hidden', marginBottom: 28 }}>
         {dimEntries.map(([key, dim], i) => {

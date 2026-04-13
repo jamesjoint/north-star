@@ -499,7 +499,7 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
                 Edit dimensions
               </button>
               <button onClick={handleRegenerate} disabled={regenerating} style={actionBtn('default')}>
-                {regenerating ? 'Regenerating…' : 'Regenerate with Claude'}
+                {regenerating ? 'Regenerating…' : 'Refresh Dimensions'}
               </button>
             </>
           )}
