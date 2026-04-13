@@ -127,8 +127,8 @@ describe('Profile — dimensions section', () => {
   test('Regenerate button calls regenerateDimensions', async () => {
     mockFetchProfile.mockResolvedValue(PROFILE_WITH_DIMS)
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /regenerate/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /refresh dimensions/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /refresh dimensions/i }))
     await waitFor(() => expect(mockRegenerateDimensions).toHaveBeenCalled())
   })
 
@@ -136,8 +136,8 @@ describe('Profile — dimensions section', () => {
     mockRegenerateDimensions.mockImplementation(() => new Promise(() => {})) // never resolves
     mockFetchProfile.mockResolvedValue(PROFILE_WITH_DIMS)
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /regenerate/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /refresh dimensions/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /refresh dimensions/i }))
     expect(screen.getByRole('button', { name: /regenerating/i })).toBeInTheDocument()
   })
 })
@@ -229,8 +229,8 @@ describe('Profile — regenerate success', () => {
   test('shows "✓ Regenerating…" text after successful regenerate', async () => {
     mockFetchProfile.mockResolvedValue(PROFILE_WITH_DIMS)
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /regenerate/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /refresh dimensions/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /refresh dimensions/i }))
     expect(await screen.findByText(/Regenerating — reload/)).toBeInTheDocument()
   })
 
@@ -238,8 +238,8 @@ describe('Profile — regenerate success', () => {
     mockRegenerateDimensions.mockRejectedValue(new Error('API error'))
     mockFetchProfile.mockResolvedValue(PROFILE_WITH_DIMS)
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /regenerate/i })).toBeInTheDocument())
-    fireEvent.click(screen.getByRole('button', { name: /regenerate/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /refresh dimensions/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /refresh dimensions/i }))
     expect(await screen.findByText('API error')).toBeInTheDocument()
   })
 })
