@@ -119,6 +119,16 @@ export async function patchBackground(background) {
   return res.json()
 }
 
+export async function patchName(firstName, lastName) {
+  const res = await apiFetch(`${BASE}/profile/name`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+  })
+  if (!res.ok) throw new Error(`Failed to save name: ${res.status}`)
+  return res.json()
+}
+
 // ── Admin ──────────────────────────────────────────────────────────────────────
 
 export async function redeemInvite(code, email) {

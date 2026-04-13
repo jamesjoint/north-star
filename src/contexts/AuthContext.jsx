@@ -7,6 +7,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(undefined) // undefined = loading
   const [loading, setLoading] = useState(true)
   const [onboardingDone, setOnboardingDone] = useState(true)
+  const [firstName, setFirstName] = useState(null)
+  const [lastName, setLastName] = useState(null)
 
   useEffect(() => {
     fetchCurrentUser()
@@ -16,6 +18,8 @@ export function AuthProvider({ children }) {
           try {
             const profile = await fetchProfile()
             setOnboardingDone(!!profile?.onboarding_done)
+            setFirstName(profile?.first_name || null)
+            setLastName(profile?.last_name || null)
           } catch {
             setOnboardingDone(false)
           }
@@ -42,7 +46,10 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, onboardingDone, completeOnboarding }}>
+    <AuthContext.Provider value={{
+      user, loading, logout, onboardingDone, completeOnboarding,
+      firstName, lastName, setFirstName, setLastName,
+    }}>
       {children}
     </AuthContext.Provider>
   )
