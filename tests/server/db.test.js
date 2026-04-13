@@ -326,6 +326,33 @@ describe('boards and tracker entries', () => {
     expect(updated.status).toBe('Applied') // preserved
   })
 
+  it('upsertTrackerEntry persists and updates direct_link', async () => {
+    const boardId = await getOrCreateDefaultBoard(pool, userId)
+    const jobId = await upsertJob(pool, { ...sample, url: 'https://x.com/directlink-test' })
+
+    // Set direct_link on initial upsert
+    await upsertTrackerEntry(pool, jobId, userId, boardId, {
+      status: 'Applied',
+      direct_link: 'https://linkedin.com/jobs/123',
+    })
+    const job = await getJobById(pool, jobId, userId)
+    expect(job.direct_link).toBe('https://linkedin.com/jobs/123')
+    expect(job.status).toBe('Applied')
+
+    // Update direct_link without touching status
+    await upsertTrackerEntry(pool, jobId, userId, boardId, {
+      direct_link: 'https://greenhouse.io/jobs/456',
+    })
+    const updated = await getJobById(pool, jobId, userId)
+    expect(updated.direct_link).toBe('https://greenhouse.io/jobs/456')
+    expect(updated.status).toBe('Applied') // preserved
+
+    // Clear direct_link
+    await upsertTrackerEntry(pool, jobId, userId, boardId, { direct_link: null })
+    const cleared = await getJobById(pool, jobId, userId)
+    expect(cleared.direct_link).toBeNull()
+  })
+
   it('getAllJobs includes status from tracker_entries', async () => {
     const boardId = await getOrCreateDefaultBoard(pool, userId)
     const jobId = await upsertJob(pool, { ...sample, url: 'https://x.com/board-test' })

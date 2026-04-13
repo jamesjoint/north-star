@@ -113,6 +113,15 @@ DO $$ BEGIN
     ALTER TABLE tracker_entries ADD COLUMN salary_range text;
   END IF;
 END $$;
+-- Idempotently add direct_link column
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tracker_entries' AND column_name = 'direct_link'
+  ) THEN
+    ALTER TABLE tracker_entries ADD COLUMN direct_link text;
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS profiles (
   user_id          text        NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,

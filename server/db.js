@@ -59,7 +59,7 @@ export async function getAllJobs(pool, userId = null) {
       SELECT j.*,
              js.score_aggregate, js.score_dimensions, js.coherence_signal,
              te.status, te.notes, te.follow_up_date, te.applied_date,
-             te.salary_range, te.board_id, te.id AS entry_id
+             te.salary_range, te.direct_link, te.board_id, te.id AS entry_id
       FROM jobs j
       LEFT JOIN job_scores js ON js.job_id = j.id AND js.user_id = $1
       LEFT JOIN tracker_entries te ON te.job_id = j.id AND te.user_id = $1
@@ -81,7 +81,7 @@ export async function getJobById(pool, id, userId = null) {
       SELECT j.*,
              js.score_aggregate, js.score_dimensions, js.coherence_signal,
              te.status, te.notes, te.follow_up_date, te.applied_date,
-             te.salary_range, te.board_id, te.id AS entry_id
+             te.salary_range, te.direct_link, te.board_id, te.id AS entry_id
       FROM jobs j
       LEFT JOIN job_scores js ON js.job_id = j.id AND js.user_id = $2
       LEFT JOIN tracker_entries te ON te.job_id = j.id AND te.user_id = $2
@@ -194,7 +194,7 @@ export async function deleteBoard(pool, boardId, userId) {
 
 export async function upsertTrackerEntry(pool, jobId, userId, boardId, updates) {
   const id = crypto.randomUUID()
-  const allowed = ['status', 'follow_up_date', 'notes', 'applied_date', 'board_id', 'salary_range']
+  const allowed = ['status', 'follow_up_date', 'notes', 'applied_date', 'board_id', 'salary_range', 'direct_link']
   // Build the ON CONFLICT update clause only for fields explicitly provided
   const setClauses = allowed
     .filter(k => k in updates)
@@ -206,11 +206,12 @@ export async function upsertTrackerEntry(pool, jobId, userId, boardId, updates) 
   const follow_up     = updates.follow_up_date ?? null
   const applied_date  = updates.applied_date   ?? null
   const salary_range  = updates.salary_range   ?? null
+  const direct_link   = updates.direct_link    ?? null
   await pool.query(
-    `INSERT INTO tracker_entries (id, board_id, user_id, job_id, status, notes, follow_up_date, applied_date, salary_range)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO tracker_entries (id, board_id, user_id, job_id, status, notes, follow_up_date, applied_date, salary_range, direct_link)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      ON CONFLICT (job_id, user_id) DO UPDATE SET ${setClauses.join(', ')}`,
-    [id, boardId, userId, jobId, status, notes, follow_up, applied_date, salary_range]
+    [id, boardId, userId, jobId, status, notes, follow_up, applied_date, salary_range, direct_link]
   )
 }
 
