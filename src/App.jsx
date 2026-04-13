@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useJobs } from './hooks/useJobs.js'
 import { useBoards } from './hooks/useBoards.js'
@@ -35,9 +36,15 @@ export default function App() {
     reloadBoards()
     return job
   }, [addJob, reloadBoards])
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
+
+  const TAB_PATHS = { search: '/', tracker: '/tracker', settings: '/settings', profile: '/profile', admin: '/admin' }
+  const PATH_TABS = Object.fromEntries(Object.entries(TAB_PATHS).map(([k, v]) => [v, k]))
+  const tab = PATH_TABS[pathname] ?? 'search'
+  function setTab(t) { navigate(TAB_PATHS[t] ?? '/') }
+
   const [selectedId, setSelectedId] = useState(null)
-  const [tab, setTab] = useState('search')
-  const [prevTab, setPrevTab] = useState('search')
 
   const selectedJob = allJobs.find(j => j.id === selectedId) || null
   const sources = [...new Set(allJobs.map(j => j.source))].sort()
@@ -67,8 +74,6 @@ export default function App() {
         unseenCount={unseenCount}
         refreshing={refreshing}
         onRefresh={refresh}
-        prevTab={prevTab}
-        setPrevTab={setPrevTab}
       />
 
       {/* ── Content area ── */}
@@ -136,7 +141,7 @@ export default function App() {
         {tab === 'profile' && (
           <div style={{ flex: 1, overflowY: 'auto', background: 'var(--screen)' }}>
             <Profile
-              onBack={() => setTab(prevTab || 'search')}
+              onBack={() => navigate(-1)}
               onGoToSettings={() => setTab('settings')}
               onProfileChange={reloadProfile}
             />
@@ -146,7 +151,7 @@ export default function App() {
         {/* Admin */}
         {tab === 'admin' && (
           <div style={{ flex: 1, overflowY: 'auto', background: 'var(--screen)' }}>
-            <AdminPanel onBack={() => setTab(prevTab || 'search')} />
+            <AdminPanel onBack={() => navigate(-1)} />
           </div>
         )}
 

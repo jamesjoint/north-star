@@ -9,7 +9,7 @@ const TABS = [
   { id: 'settings', label: 'Settings' },
 ]
 
-export default function Header({ tab, setTab, trackedCount, unseenCount, refreshing, onRefresh, prevTab, setPrevTab }) {
+export default function Header({ tab, setTab, trackedCount, unseenCount, refreshing, onRefresh }) {
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -30,13 +30,11 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
 
   function handleProfile() {
     setMenuOpen(false)
-    if (setPrevTab) setPrevTab(tab)
     setTab('profile')
   }
 
   function handleAdmin() {
     setMenuOpen(false)
-    if (setPrevTab) setPrevTab(tab)
     setTab('admin')
   }
 
