@@ -335,7 +335,7 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   process.stdout.write('[migration-start] DATABASE_URL = ' + (process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:\/\/.*@/, '://***@') : 'NOT SET') + '\n')
 
   try {
-    const schemaPath = path.join(__dirname, 'schema.sql')
+    const schemaPath = path.join(__dirname, 'db/schema.sql')
     process.stdout.write('[migration] schema path = ' + schemaPath + '\n')
     process.stdout.write('[migration] schema exists = ' + existsSync(schemaPath) + '\n')
     const schema = readFileSync(schemaPath, 'utf8')
