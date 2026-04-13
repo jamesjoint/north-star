@@ -283,7 +283,7 @@ describe('Onboarding — ReviewStep', () => {
   test('Continue calls patchWeights and advances to board step', async () => {
     await advanceToReview()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText(/Name your tracker board/)
+    await screen.findByText(/Name your constellation board/)
     expect(mockPatchWeights).toHaveBeenCalled()
   })
 
@@ -303,7 +303,7 @@ describe('Onboarding — ReviewStep', () => {
     await screen.findByText(/You're all set/)
     // Start scoring jobs button available
     fireEvent.click(screen.getByRole('button', { name: 'Start scoring jobs' }))
-    await screen.findByText(/Name your tracker board/)
+    await screen.findByText(/Name your constellation board/)
   })
 })
 
@@ -320,7 +320,7 @@ describe('Onboarding — BoardNameStep', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
     await screen.findByText(/Your scoring dimensions/)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText(/Name your tracker board/)
+    await screen.findByText(/Name your constellation board/)
     return onComplete
   }
 
@@ -430,7 +430,7 @@ describe('Onboarding — BoardNameStep error', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
     await screen.findByText(/Your scoring dimensions/)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText(/Name your tracker board/)
+    await screen.findByText(/Name your constellation board/)
     fireEvent.click(screen.getByRole('button', { name: 'Start scoring jobs' }))
     await waitFor(() => expect(onComplete).toHaveBeenCalled())
   })
@@ -485,7 +485,7 @@ describe('Onboarding — ReviewStep patchWeights failure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip' })) // skip personality
     await screen.findByText(/Your scoring dimensions/)
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
-    await screen.findByText(/Name your tracker board/)
+    await screen.findByText(/Name your constellation board/)
     // Even though patchWeights failed, we reached board step → test onComplete from there
     fireEvent.click(screen.getByRole('button', { name: 'Start scoring jobs' }))
     await waitFor(() => expect(mockPatchWeights).toHaveBeenCalled())
