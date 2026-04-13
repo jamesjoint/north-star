@@ -297,6 +297,12 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
   const { runPipeline, startScheduler } = await import('./scheduler.js')
   const pool = createPool()
 
+  // Log critical env vars so Railway deploy logs show config state
+  process.stdout.write('[startup] BETTER_AUTH_URL  = ' + (process.env.BETTER_AUTH_URL || 'NOT SET') + '\n')
+  process.stdout.write('[startup] ADMIN_EMAIL      = ' + (process.env.ADMIN_EMAIL || 'NOT SET') + '\n')
+  process.stdout.write('[startup] RESEND_API_KEY   = ' + (process.env.RESEND_API_KEY ? '***set***' : 'NOT SET') + '\n')
+  process.stdout.write('[startup] RESEND_FROM      = ' + (process.env.RESEND_FROM || 'NOT SET') + '\n')
+
   // Run schema migrations before starting — idempotent, safe on every boot
   process.stdout.write('[migration-start] DATABASE_URL = ' + (process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:\/\/.*@/, '://***@') : 'NOT SET') + '\n')
 
@@ -309,17 +315,28 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     await pool.query(schema)
     process.stdout.write('[migration] SUCCESS\n')
 
-    // Bootstrap admin user if ADMIN_EMAIL is set and user doesn't exist
+    // Bootstrap admin user — create if missing, force-activate if pending
     const adminEmail = process.env.ADMIN_EMAIL
     if (adminEmail) {
       const adminId = randomUUID()
-      const { rowCount } = await pool.query(
+      const { rowCount: inserted } = await pool.query(
         `INSERT INTO "user" (id, name, email, "emailVerified", role, status, "createdAt", "updatedAt")
          VALUES ($1, '', $2, true, 'admin', 'active', now(), now())
          ON CONFLICT (email) DO NOTHING`,
         [adminId, adminEmail]
       )
-      if (rowCount > 0) process.stdout.write('[migration] Admin user created: ' + adminEmail + '\n')
+      if (inserted > 0) {
+        process.stdout.write('[migration] Admin user created: ' + adminEmail + '\n')
+      } else {
+        // User already exists — ensure they're active with admin role
+        const { rowCount: updated } = await pool.query(
+          `UPDATE "user" SET status = 'active', role = 'admin', "emailVerified" = true, "updatedAt" = now()
+           WHERE email = $1 AND (status != 'active' OR role != 'admin')`,
+          [adminEmail]
+        )
+        if (updated > 0) process.stdout.write('[migration] Admin user activated: ' + adminEmail + '\n')
+        else process.stdout.write('[migration] Admin user already active: ' + adminEmail + '\n')
+      }
     }
   } catch (err) {
     process.stdout.write('[migration-ERROR] ' + err.message + '\n')

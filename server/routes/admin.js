@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { requireAdmin } from '../middleware/requireAdmin.js'
 import { sendApprovalEmail } from '../email.js'
-import { auth } from '../auth.js'
+import { Resend } from 'resend'
 
 const router = Router()
 router.use(requireAdmin)
@@ -21,15 +21,22 @@ router.post('/waitlist/:userId/approve', async (req, res) => {
     [req.params.userId]
   )
   if (!rows[0]) return res.status(404).json({ error: 'Pending user not found' })
-  // Send a magic link directly so the user can log in from the approval email
-  auth.api.signInMagicLink({
-    body: { email: rows[0].email, callbackURL: process.env.BETTER_AUTH_URL || 'http://localhost:3001' },
-    headers: new Headers({ host: new URL(process.env.BETTER_AUTH_URL || 'http://localhost:3001').host }),
-  }).catch(() => {
-    // Fall back to the generic approval email if magic link generation fails
-    sendApprovalEmail({ to: rows[0].email }).catch(err =>
-      console.error('[approve] fallback email failed:', err.message)
-    )
+  // Send a magic link so the user can sign in directly from the approval email
+  const approvedEmail = rows[0].email
+  const port = process.env.PORT || 3001
+  fetch(`http://localhost:${port}/api/auth/sign-in/magic-link`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: approvedEmail }),
+  }).then(r => r.json().catch(() => ({}))).then(body => {
+    if (body?.error) {
+      console.error('[approve] magic link failed, falling back to approval email:', JSON.stringify(body))
+      return sendApprovalEmail({ to: approvedEmail })
+    }
+    console.log(`[approve] Magic link sent to ${approvedEmail}`)
+  }).catch(err => {
+    console.error('[approve] email failed:', err.message)
+    sendApprovalEmail({ to: approvedEmail }).catch(() => {})
   })
   res.json({ ok: true })
 })
@@ -85,6 +92,26 @@ router.get('/scoring', async (req, res) => {
      ORDER BY u.email`
   )
   res.json(users)
+})
+
+// Test email — admin-only, returns full Resend response for debugging
+router.post('/test-email', async (req, res) => {
+  const to = req.body?.to || req.user.email
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const from = process.env.RESEND_FROM || 'noreply@example.com'
+  console.log(`[test-email] Attempting send to ${to} from ${from}, RESEND_API_KEY=${process.env.RESEND_API_KEY ? '***set***' : 'NOT SET'}`)
+  const { data, error } = await resend.emails.send({
+    from,
+    to,
+    subject: 'North Star — test email',
+    html: '<p>This is a test email from North Star. If you received this, Resend is working.</p>',
+  })
+  if (error) {
+    console.error('[test-email] Resend error:', JSON.stringify(error))
+    return res.status(500).json({ ok: false, error })
+  }
+  console.log('[test-email] Sent ok:', JSON.stringify(data))
+  res.json({ ok: true, data })
 })
 
 export default router
