@@ -40,13 +40,19 @@ export async function sendWaitlistConfirmationEmail({ to }) {
 }
 
 export async function sendApprovalEmail({ to }) {
+  const url = process.env.BETTER_AUTH_URL
   await send({
     from: FROM,
     to,
-    subject: `You're in — sign in to ${APP_NAME}`,
+    subject: `the door is open ✦`,
     html: `
-      <p>Good news — your ${APP_NAME} account has been approved!</p>
-      <p>Go to <a href="${process.env.BETTER_AUTH_URL}">${process.env.BETTER_AUTH_URL}</a> and enter your email to get a sign-in link.</p>
+      <p>You made it.</p>
+      <p>Welcome to North Star — we've been holding your spot.</p>
+      <p>Inside, you'll find a job feed scored and ranked specifically for you, a tracker to manage everything from first application to final round, and a scoring engine that gets sharper the more you use it.</p>
+      <p>Getting started takes about 5 minutes. You'll set your target roles, tell us what matters most to you, and we'll take it from there. New jobs are scored and surfaced for you every morning.</p>
+      <p>Go to <a href="${url}">${url}</a> and enter your email to get your sign-in link.</p>
+      <p>The right role is out there. Let's find it.</p>
+      <p>— The North Star team</p>
     `,
   })
 }
