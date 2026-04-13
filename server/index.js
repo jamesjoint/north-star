@@ -18,7 +18,7 @@ import {
   markDeleted, upsertTrackerEntry, removeTrackerEntry,
   getBoards, createBoard, updateBoard, deleteBoard, getOrCreateDefaultBoard,
   getProfile, upsertProfileWeights, upsertProfileBackground, upsertProfilePersonality,
-  upsertProfileDimensions, seedAdminProfile,
+  upsertProfileDimensions, seedAdminProfile, upsertProfileName,
 } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -210,17 +210,19 @@ export function createApp(pool, pipeline = null) {
         onboarding_done: dbProfile.onboarding_done,
         dimensions: dbProfile.dimensions || null,
         personality: dbProfile.personality || null,
+        first_name: dbProfile.first_name || null,
+        last_name: dbProfile.last_name || null,
       })
     }
     // Admin only: fall back to profile.json if DB profile not seeded yet
     if (req.user.role === 'admin') {
       try {
         const fileProfile = JSON.parse(readFileSync(PROFILE_PATH, 'utf8'))
-        return res.json({ weights: fileProfile.weights, background: fileProfile.background, onboarding_done: false, dimensions: null })
+        return res.json({ weights: fileProfile.weights, background: fileProfile.background, onboarding_done: false, dimensions: null, first_name: null, last_name: null })
       } catch { /* fall through */ }
     }
     // New user with no profile yet — send them through onboarding
-    res.json({ weights: {}, background: '', onboarding_done: false, dimensions: null, personality: null })
+    res.json({ weights: {}, background: '', onboarding_done: false, dimensions: null, personality: null, first_name: null, last_name: null })
   })
 
   app.patch('/api/profile/weights', async (req, res) => {
@@ -261,6 +263,12 @@ export function createApp(pool, pipeline = null) {
     import('./scheduler.js')
       .then(({ rescoreAllJobs }) => rescoreAllJobs(pool, req.user.id))
       .catch(err => console.error('[PATCH /api/profile/personality] rescore failed:', err.message))
+  })
+
+  app.patch('/api/profile/name', async (req, res) => {
+    const { first_name, last_name } = req.body
+    await upsertProfileName(pool, req.user.id, first_name, last_name)
+    res.json({ ok: true })
   })
 
   app.patch('/api/profile/dimensions', async (req, res) => {

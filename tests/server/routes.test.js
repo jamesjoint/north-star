@@ -610,6 +610,33 @@ describe('PATCH /api/profile/personality', () => {
   })
 })
 
+describe('PATCH /api/profile/name', () => {
+  test('saves and returns first_name and last_name via GET /api/profile', async () => {
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/profile/name')
+      .set('Cookie', sessionCookie)
+      .send({ first_name: 'Ada', last_name: 'Lovelace' })
+    expect(res.status).toBe(200)
+    expect(res.body.ok).toBe(true)
+
+    const profile = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(profile.body.first_name).toBe('Ada')
+    expect(profile.body.last_name).toBe('Lovelace')
+  })
+
+  test('allows null last_name', async () => {
+    const app = createApp(pool)
+    await request(app)
+      .patch('/api/profile/name')
+      .set('Cookie', sessionCookie)
+      .send({ first_name: 'Ada', last_name: null })
+    const profile = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(profile.body.first_name).toBe('Ada')
+    expect(profile.body.last_name).toBeNull()
+  })
+})
+
 describe('PATCH /api/profile/dimensions', () => {
   test('saves custom dimensions and returns them via GET', async () => {
     const app = createApp(pool)
