@@ -544,4 +544,12 @@ describe('profiles', () => {
     expect(profile.first_name).toBe('Ada')
     expect(profile.last_name).toBeNull()
   })
+
+  test('upsertProfileName overwrites previous values on repeat calls', async () => {
+    await upsertProfileName(pool, userId, 'Ada', 'Lovelace')
+    await upsertProfileName(pool, userId, 'Grace', 'Hopper')
+    const profile = await getProfile(pool, userId)
+    expect(profile.first_name).toBe('Grace')
+    expect(profile.last_name).toBe('Hopper')
+  })
 })
