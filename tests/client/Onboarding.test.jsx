@@ -7,6 +7,7 @@ let mockFetchProfile = vi.fn()
 let mockPatchWeights = vi.fn()
 let mockPatchPersonality = vi.fn()
 let mockCreateBoardApi = vi.fn()
+let mockPatchName = vi.fn()
 
 vi.mock('../../src/api.js', () => ({
   patchBackground: (...args) => mockPatchBackground(...args),
@@ -14,6 +15,11 @@ vi.mock('../../src/api.js', () => ({
   patchWeights: (...args) => mockPatchWeights(...args),
   patchPersonality: (...args) => mockPatchPersonality(...args),
   createBoardApi: (...args) => mockCreateBoardApi(...args),
+  patchName: (...args) => mockPatchName(...args),
+}))
+
+vi.mock('../../src/contexts/AuthContext.jsx', () => ({
+  useAuth: () => ({ setFirstName: vi.fn(), setLastName: vi.fn() }),
 }))
 
 beforeEach(() => {
@@ -23,6 +29,7 @@ beforeEach(() => {
   mockPatchWeights.mockResolvedValue({})
   mockPatchPersonality.mockResolvedValue({})
   mockCreateBoardApi.mockResolvedValue({})
+  mockPatchName.mockResolvedValue({})
 })
 
 afterEach(() => {
@@ -41,6 +48,13 @@ function fillBackgroundForm() {
   fireEvent.change(inputs[1], { target: { value: 'media, fintech' } })
 }
 
+async function passNameStep() {
+  const inputs = screen.getAllByRole('textbox')
+  fireEvent.change(inputs[0], { target: { value: 'Ada' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+  await act(async () => {})
+}
+
 // Helper: start at background step, submit form, and advance timer to trigger poll
 async function advancePastGenerating(dimensions = null, onComplete = vi.fn()) {
   // Fake all timers — required for advanceTimersByTimeAsync to flush async callbacks
@@ -49,6 +63,7 @@ async function advancePastGenerating(dimensions = null, onComplete = vi.fn()) {
     mockFetchProfile.mockResolvedValue({ dimensions, weights: {} })
   }
   render(<Onboarding onComplete={onComplete} />)
+  await passNameStep()        // ← NEW
   fillBackgroundForm()
   // Click Continue — patchBackground resolves via microtask, act() flushes React updates
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -61,25 +76,28 @@ async function advancePastGenerating(dimensions = null, onComplete = vi.fn()) {
 }
 
 describe('Onboarding — BackgroundStep', () => {
-  test('shows the background form on initial render', () => {
+  test('shows the name form on initial render', () => {
     render(<Onboarding onComplete={vi.fn()} />)
-    expect(screen.getByText(/Set up your profile/)).toBeInTheDocument()
-    expect(screen.getByText(/professional background/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('First name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Last name (optional)')).toBeInTheDocument()
   })
 
-  test('Continue button is disabled when required fields are empty', () => {
+  test('Continue button is disabled when required fields are empty', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
   })
 
-  test('Continue button enables when all required fields are filled', () => {
+  test('Continue button enables when all required fields are filled', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     expect(screen.getByRole('button', { name: 'Continue' })).not.toBeDisabled()
   })
 
   test('calls patchBackground with assembled background text on submit', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockPatchBackground).toHaveBeenCalled())
@@ -92,6 +110,7 @@ describe('Onboarding — BackgroundStep', () => {
   test('shows error message when patchBackground fails', async () => {
     mockPatchBackground.mockRejectedValue(new Error('Server error'))
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText('Server error')).toBeInTheDocument()
@@ -99,9 +118,50 @@ describe('Onboarding — BackgroundStep', () => {
 
   test('advances to generating step after successful submit', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     expect(await screen.findByText(/Building your scoring profile/)).toBeInTheDocument()
+  })
+})
+
+describe('Onboarding — NameStep', () => {
+  test('shows name form on initial render', () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    expect(screen.getByPlaceholderText('First name')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Last name (optional)')).toBeInTheDocument()
+  })
+
+  test('Continue button is disabled when first name is empty', () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+  })
+
+  test('Continue button enables when first name is filled', () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Ada' } })
+    expect(screen.getByRole('button', { name: 'Continue' })).not.toBeDisabled()
+  })
+
+  test('calls patchName with first and last name on submit', async () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Ada' } })
+    fireEvent.change(screen.getByPlaceholderText('Last name (optional)'), { target: { value: 'Lovelace' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockPatchName).toHaveBeenCalledWith('Ada', 'Lovelace'))
+  })
+
+  test('calls patchName with null last name when last name is empty', async () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Ada' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+    await waitFor(() => expect(mockPatchName).toHaveBeenCalledWith('Ada', null))
+  })
+
+  test('advances to background step after successful submit', async () => {
+    render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
+    expect(screen.getByText(/Set up your profile/)).toBeInTheDocument()
   })
 })
 
@@ -109,6 +169,7 @@ describe('Onboarding — GeneratingStep', () => {
   test('shows "Building your scoring profile" while waiting', async () => {
     vi.useFakeTimers()
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})
@@ -135,6 +196,7 @@ describe('Onboarding — GeneratingStep', () => {
     vi.useFakeTimers()
     mockFetchProfile.mockResolvedValue(null)
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})
@@ -146,6 +208,7 @@ describe('Onboarding — GeneratingStep', () => {
     vi.useFakeTimers()
     mockFetchProfile.mockResolvedValue(null)
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})
@@ -228,6 +291,7 @@ describe('Onboarding — ReviewStep', () => {
     vi.useFakeTimers()
     mockFetchProfile.mockResolvedValue(null)
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})
@@ -304,6 +368,7 @@ describe('Onboarding — BoardNameStep', () => {
 describe('Onboarding — BackgroundStep extra', () => {
   test('includes dealbreakers in background text when filled', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     const boxes = screen.getAllByRole('textbox')
     fireEvent.change(boxes[0], { target: { value: 'Product leader' } })
     fireEvent.change(boxes[1], { target: { value: 'Cross-functional work' } })
@@ -322,6 +387,7 @@ describe('Onboarding — BackgroundStep extra', () => {
 
   test('omits deal-breakers section when dealbreakers field is empty', async () => {
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await waitFor(() => expect(mockPatchBackground).toHaveBeenCalled())
@@ -375,6 +441,7 @@ describe('Onboarding — GeneratingStep timed-out state', () => {
     vi.useFakeTimers()
     mockFetchProfile.mockResolvedValue(null)
     render(<Onboarding onComplete={vi.fn()} />)
+    await passNameStep()
     fillBackgroundForm()
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     await act(async () => {})

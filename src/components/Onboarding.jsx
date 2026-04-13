@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { patchBackground, fetchProfile, patchWeights, patchPersonality, createBoardApi } from '../api.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
+import { patchBackground, fetchProfile, patchWeights, patchPersonality, createBoardApi, patchName } from '../api.js'
 
 const PROMPTS = [
   { key: 'background',   label: "What's your professional background in 2–3 sentences?" },
@@ -12,7 +13,70 @@ const MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','IST
 const DISC_STYLES = ['Dominance (D)','Influence (I)','Steadiness (S)','Conscientiousness (C)']
 const ZODIAC = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
 
-const STEPS = ['background', 'generating', 'personality', 'review', 'board']
+const STEPS = ['name', 'background', 'generating', 'personality', 'review', 'board']
+
+// ── Step 0: Name form ─────────────────────────────────────────────────────────
+
+function NameStep({ onNext }) {
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const ready = firstName.trim().length > 0
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!ready) return
+    setSaving(true)
+    setError('')
+    try {
+      await patchName(firstName.trim(), lastName.trim() || null)
+      onNext(firstName.trim(), lastName.trim() || null)
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+        What should we call you?
+      </h1>
+      <p style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 32, lineHeight: 1.5 }}>
+        We'll use your name to personalize your experience.
+      </p>
+      <form onSubmit={handleSubmit}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+          <input
+            type="text"
+            placeholder="First name"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            style={{ flex: 1, padding: '10px 12px', fontSize: 15, borderRadius: 8, border: '1px solid rgba(0,0,0,0.18)', fontFamily: 'var(--font)' }}
+            autoFocus
+          />
+          <input
+            type="text"
+            placeholder="Last name (optional)"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            style={{ flex: 1, padding: '10px 12px', fontSize: 15, borderRadius: 8, border: '1px solid rgba(0,0,0,0.18)', fontFamily: 'var(--font)' }}
+          />
+        </div>
+        {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+        <button
+          type="submit"
+          disabled={!ready || saving}
+          style={primaryBtn(ready && !saving)}
+        >
+          {saving ? 'Saving…' : 'Continue'}
+        </button>
+      </form>
+    </>
+  )
+}
 
 // ── Step 1: Background form ───────────────────────────────────────────────────
 
@@ -424,11 +488,18 @@ function primaryBtn(enabled) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function Onboarding({ onComplete }) {
-  const [step, setStep] = useState('background')
+  const { setFirstName, setLastName } = useAuth()
+  const [step, setStep] = useState('name')
   const [dimensions, setDimensions] = useState(null)
   const [initialWeights, setInitialWeights] = useState({})
 
   const stepIndex = STEPS.indexOf(step)
+
+  function handleNameDone(first, last) {
+    setFirstName(first)
+    setLastName(last)
+    setStep('background')
+  }
 
   function handleGeneratingDone(dims, weights) {
     setDimensions(dims)
@@ -454,6 +525,9 @@ export default function Onboarding({ onComplete }) {
           ))}
         </div>
 
+        {step === 'name' && (
+          <NameStep onNext={handleNameDone} />
+        )}
         {step === 'background' && (
           <BackgroundStep onNext={() => setStep('generating')} />
         )}
