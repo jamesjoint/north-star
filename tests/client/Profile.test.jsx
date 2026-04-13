@@ -365,4 +365,11 @@ describe('Profile — name section', () => {
     await waitFor(() => expect(mockSetFirstName).toHaveBeenCalledWith('Grace'))
     expect(mockSetLastName).toHaveBeenCalledWith(null)
   })
+
+  test('Save name button is disabled when first name is empty', async () => {
+    render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
+    await waitFor(() => expect(screen.getByPlaceholderText('First name')).toBeInTheDocument())
+    // First name input is empty by default (profile has first_name: null)
+    expect(screen.getByRole('button', { name: 'Save name' })).toBeDisabled()
+  })
 })

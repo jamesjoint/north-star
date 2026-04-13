@@ -405,7 +405,7 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
           />
           <button
             onClick={handleSaveName}
-            disabled={savingName}
+            disabled={savingName || !nameFirst.trim()}
             style={{
               padding: '8px 14px', fontSize: 13, fontWeight: 600,
               background: 'var(--blue)', color: '#fff', border: 'none',
