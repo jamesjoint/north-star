@@ -23,8 +23,8 @@ router.post('/waitlist/:userId/approve', async (req, res) => {
   if (!rows[0]) return res.status(404).json({ error: 'Pending user not found' })
   // Send a magic link so the user can sign in directly from the approval email
   const approvedEmail = rows[0].email
-  const port = process.env.PORT || 3001
-  fetch(`http://localhost:${port}/api/auth/sign-in/magic-link`, {
+  const baseUrl = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 3001}`
+  fetch(`${baseUrl}/api/auth/sign-in/magic-link`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: approvedEmail }),

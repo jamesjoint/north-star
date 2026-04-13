@@ -93,8 +93,8 @@ router.post('/request-link', async (req, res) => {
 
     // ── Send magic link via better-auth HTTP endpoint ───────────────────────
     console.log(`[request-link] Sending magic link to ${email}`)
-    const port = process.env.PORT || 3001
-    const mlRes = await fetch(`http://localhost:${port}/api/auth/sign-in/magic-link`, {
+    const baseUrl = process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 3001}`
+    const mlRes = await fetch(`${baseUrl}/api/auth/sign-in/magic-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
