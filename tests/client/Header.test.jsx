@@ -23,22 +23,22 @@ const DEFAULT_PROPS = {
 describe('tab rendering', () => {
   test('renders all three tabs', () => {
     render(<Header {...DEFAULT_PROPS} />)
-    expect(screen.getByRole('button', { name: 'Jobs' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Tracker' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Radar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Constellation' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Settings' })).toBeInTheDocument()
   })
 
-  test('clicking Jobs tab calls setTab with "search"', () => {
+  test('clicking Radar tab calls setTab with "search"', () => {
     const setTab = vi.fn()
     render(<Header {...DEFAULT_PROPS} tab="tracker" setTab={setTab} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Jobs' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Radar' }))
     expect(setTab).toHaveBeenCalledWith('search')
   })
 
-  test('clicking Tracker tab calls setTab with "tracker"', () => {
+  test('clicking Constellation tab calls setTab with "tracker"', () => {
     const setTab = vi.fn()
     render(<Header {...DEFAULT_PROPS} tab="search" setTab={setTab} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Tracker' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Constellation' }))
     expect(setTab).toHaveBeenCalledWith('tracker')
   })
 
@@ -186,24 +186,20 @@ describe('menu actions', () => {
     expect(mockLogout).toHaveBeenCalled()
   })
 
-  test('clicking Profile sets prevTab to current tab before navigating', () => {
+  test('clicking Profile calls setTab("profile")', () => {
     const setTab = vi.fn()
-    const setPrevTab = vi.fn()
-    render(<Header {...DEFAULT_PROPS} tab="tracker" setTab={setTab} setPrevTab={setPrevTab} />)
+    render(<Header {...DEFAULT_PROPS} tab="tracker" setTab={setTab} />)
     fireEvent.click(screen.getByText('AL'))
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }))
-    expect(setPrevTab).toHaveBeenCalledWith('tracker')
     expect(setTab).toHaveBeenCalledWith('profile')
   })
 
-  test('clicking Admin sets prevTab to current tab before navigating', () => {
+  test('clicking Admin calls setTab("admin")', () => {
     mockUser = { email: 'admin@example.com', role: 'admin' }
     const setTab = vi.fn()
-    const setPrevTab = vi.fn()
-    render(<Header {...DEFAULT_PROPS} tab="search" setTab={setTab} setPrevTab={setPrevTab} />)
+    render(<Header {...DEFAULT_PROPS} tab="search" setTab={setTab} />)
     fireEvent.click(screen.getByText('AD'))
     fireEvent.click(screen.getByRole('button', { name: 'Admin' }))
-    expect(setPrevTab).toHaveBeenCalledWith('search')
     expect(setTab).toHaveBeenCalledWith('admin')
     mockUser = { email: 'alice@example.com', role: 'user' }
   })
