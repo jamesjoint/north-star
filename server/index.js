@@ -37,7 +37,7 @@ export function createApp(pool, pipeline = null) {
   // Diagnostic email test — requires BOOTSTRAP_SECRET env var to prevent abuse
   app.post('/api/bootstrap/test-email', async (req, res) => {
     const secret = process.env.BOOTSTRAP_SECRET
-    if (!secret || req.body?.secret !== secret) {
+    if (!secret || req.body?.secret?.toLowerCase() !== secret.toLowerCase()) {
       return res.status(403).json({ error: 'forbidden' })
     }
     const to = req.body?.to
