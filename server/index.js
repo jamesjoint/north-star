@@ -34,6 +34,36 @@ export function createApp(pool, pipeline = null) {
   // Health check — always reachable, no auth
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
+  // Diagnostic email test — requires BOOTSTRAP_SECRET env var to prevent abuse
+  app.post('/api/bootstrap/test-email', async (req, res) => {
+    const secret = process.env.BOOTSTRAP_SECRET
+    if (!secret || req.body?.secret !== secret) {
+      return res.status(403).json({ error: 'forbidden' })
+    }
+    const to = req.body?.to
+    if (!to) return res.status(400).json({ error: 'to required' })
+    try {
+      const { Resend } = await import('resend')
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const from = process.env.RESEND_FROM || 'noreply@example.com'
+      console.log(`[bootstrap/test-email] Sending to ${to} from ${from}`)
+      const { data, error } = await resend.emails.send({
+        from, to,
+        subject: 'North Star — Resend test',
+        html: '<p>Resend is working.</p>',
+      })
+      if (error) {
+        console.error('[bootstrap/test-email] Resend error:', JSON.stringify(error))
+        return res.status(500).json({ ok: false, error })
+      }
+      console.log('[bootstrap/test-email] Sent ok:', JSON.stringify(data))
+      res.json({ ok: true, data })
+    } catch (err) {
+      console.error('[bootstrap/test-email] Exception:', err.message)
+      res.status(500).json({ ok: false, error: err.message })
+    }
+  })
+
   // Custom auth routes (signup, /me) — must come BEFORE better-auth catch-all
   app.use('/api/auth', authRoutes)
 
