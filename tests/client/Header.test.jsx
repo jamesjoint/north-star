@@ -5,8 +5,10 @@ import Header from '../../src/components/Header.jsx'
 // Mutable mock so individual tests can change the user
 let mockUser = { email: 'alice@example.com', role: 'user' }
 let mockLogout = vi.fn()
+let mockFirstName = null
+let mockLastName = null
 vi.mock('../../src/contexts/AuthContext.jsx', () => ({
-  useAuth: () => ({ user: mockUser, logout: mockLogout }),
+  useAuth: () => ({ user: mockUser, logout: mockLogout, firstName: mockFirstName, lastName: mockLastName }),
 }))
 
 const DEFAULT_PROPS = {
@@ -89,6 +91,32 @@ describe('avatar and user', () => {
     render(<Header {...DEFAULT_PROPS} />)
     fireEvent.click(screen.getByText('AL'))
     expect(screen.getByText('alice@example.com')).toBeInTheDocument()
+  })
+
+  test('shows first+last initials when firstName and lastName are set', () => {
+    mockFirstName = 'Grace'
+    mockLastName = 'Hopper'
+    render(<Header {...DEFAULT_PROPS} />)
+    expect(screen.getByText('GH')).toBeInTheDocument()
+    mockFirstName = null
+    mockLastName = null
+  })
+
+  test('shows single initial when only firstName is set', () => {
+    mockFirstName = 'Grace'
+    mockLastName = null
+    render(<Header {...DEFAULT_PROPS} />)
+    expect(screen.getByText('G')).toBeInTheDocument()
+    mockFirstName = null
+  })
+
+  test('shows "Hi, FirstName" in dropdown when firstName is set', () => {
+    mockFirstName = 'Grace'
+    mockLastName = null
+    render(<Header {...DEFAULT_PROPS} />)
+    fireEvent.click(screen.getByText('G'))
+    expect(screen.getByText('Hi, Grace')).toBeInTheDocument()
+    mockFirstName = null
   })
 })
 

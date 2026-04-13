@@ -10,7 +10,7 @@ const TABS = [
 ]
 
 export default function Header({ tab, setTab, trackedCount, unseenCount, refreshing, onRefresh }) {
-  const { user, logout } = useAuth()
+  const { user, logout, firstName, lastName } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -39,7 +39,9 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
   }
 
   const color = avatarColor(user?.email)
-  const abbr = initials(user?.email)
+  const abbr = firstName
+    ? `${firstName[0]}${lastName?.[0] || ''}`.toUpperCase()
+    : initials(user?.email)
 
   return (
     <header style={{
@@ -199,7 +201,13 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
             }}>
               {/* User info */}
               <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--divider)' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>Signed in as</div>
+                {firstName ? (
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+                    Hi, {firstName}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 2 }}>Signed in as</div>
+                )}
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-2)', wordBreak: 'break-all' }}>
                   {user?.email}
                 </div>
