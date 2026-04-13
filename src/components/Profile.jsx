@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { fetchProfile, patchBackground, regenerateDimensions, patchPersonality, patchDimensions } from '../api.js'
+import { fetchProfile, patchBackground, regenerateDimensions, patchPersonality, patchDimensions, patchName } from '../api.js'
 import { cleanPersonality } from '../utils/personality.js'
+import { useAuth } from '../contexts/AuthContext.jsx'
 
 const MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP']
 const DISC_STYLES = ['Dominance (D)','Influence (I)','Steadiness (S)','Conscientiousness (C)']
@@ -261,6 +262,7 @@ function actionBtn(variant) {
 // ── Main Profile page ─────────────────────────────────────────────────────────
 
 export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
+  const { setFirstName: ctxSetFirstName, setLastName: ctxSetLastName } = useAuth()
   const [profile, setProfile] = useState(null)
   const [background, setBackground] = useState('')
   const [original, setOriginal] = useState('')
@@ -274,6 +276,10 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
   const [savingDims, setSavingDims] = useState(false)
   const [savedDims, setSavedDims] = useState(false)
   const [error, setError] = useState('')
+  const [nameFirst, setNameFirst] = useState('')
+  const [nameLast, setNameLast] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  const [savedName, setSavedName] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -282,6 +288,8 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
         const bg = p?.background || ''
         setBackground(bg)
         setOriginal(bg)
+        setNameFirst(p?.first_name || '')
+        setNameLast(p?.last_name || '')
       })
       .catch(() => setError('Could not load profile.'))
       .finally(() => setLoading(false))
@@ -307,6 +315,22 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
       setError(err.message || 'Save failed.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleSaveName() {
+    setSavingName(true)
+    setSavedName(false)
+    try {
+      await patchName(nameFirst.trim() || null, nameLast.trim() || null)
+      ctxSetFirstName(nameFirst.trim() || null)
+      ctxSetLastName(nameLast.trim() || null)
+      setSavedName(true)
+      setTimeout(() => setSavedName(false), 4000)
+    } catch (err) {
+      setError(err.message || 'Save failed.')
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -359,6 +383,40 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
         }}>
           ← Back
         </button>
+      </div>
+
+      {/* Name section */}
+      <SectionLabel>Your Name</SectionLabel>
+      <div style={{ background: '#fff', borderTop: '0.5px solid rgba(0,0,0,0.15)', borderBottom: '0.5px solid rgba(0,0,0,0.15)', padding: '14px 16px' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="First name"
+            value={nameFirst}
+            onChange={e => setNameFirst(e.target.value)}
+            style={{ flex: 1, padding: '8px 10px', fontSize: 14, borderRadius: 7, border: '1px solid rgba(0,0,0,0.18)', fontFamily: 'var(--font)' }}
+          />
+          <input
+            type="text"
+            placeholder="Last name (optional)"
+            value={nameLast}
+            onChange={e => setNameLast(e.target.value)}
+            style={{ flex: 1, padding: '8px 10px', fontSize: 14, borderRadius: 7, border: '1px solid rgba(0,0,0,0.18)', fontFamily: 'var(--font)' }}
+          />
+          <button
+            onClick={handleSaveName}
+            disabled={savingName}
+            style={{
+              padding: '8px 14px', fontSize: 13, fontWeight: 600,
+              background: 'var(--blue)', color: '#fff', border: 'none',
+              borderRadius: 7, cursor: savingName ? 'default' : 'pointer',
+              fontFamily: 'var(--font)', opacity: savingName ? 0.7 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {savedName ? '✓ Saved' : savingName ? 'Saving…' : 'Save name'}
+          </button>
+        </div>
       </div>
 
       {/* Background section */}

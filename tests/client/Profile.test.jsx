@@ -7,6 +7,9 @@ let mockPatchBackground = vi.fn()
 let mockRegenerateDimensions = vi.fn()
 let mockPatchPersonality = vi.fn()
 let mockPatchDimensions = vi.fn()
+let mockPatchName = vi.fn()
+let mockSetFirstName = vi.fn()
+let mockSetLastName = vi.fn()
 
 vi.mock('../../src/api.js', () => ({
   fetchProfile: (...args) => mockFetchProfile(...args),
@@ -14,6 +17,11 @@ vi.mock('../../src/api.js', () => ({
   regenerateDimensions: (...args) => mockRegenerateDimensions(...args),
   patchPersonality: (...args) => mockPatchPersonality(...args),
   patchDimensions: (...args) => mockPatchDimensions(...args),
+  patchName: (...args) => mockPatchName(...args),
+}))
+
+vi.mock('../../src/contexts/AuthContext.jsx', () => ({
+  useAuth: () => ({ setFirstName: mockSetFirstName, setLastName: mockSetLastName }),
 }))
 
 const SAMPLE_PROFILE = {
@@ -22,6 +30,8 @@ const SAMPLE_PROFILE = {
   personality: null,
   dimensions: null,
   weights: {},
+  first_name: null,
+  last_name: null,
 }
 
 const PROFILE_WITH_DIMS = {
@@ -41,6 +51,7 @@ beforeEach(() => {
   mockRegenerateDimensions.mockResolvedValue({})
   mockPatchPersonality.mockResolvedValue({})
   mockPatchDimensions.mockResolvedValue({})
+  mockPatchName.mockResolvedValue({})
 })
 
 describe('Profile — loading & initial render', () => {
@@ -58,7 +69,7 @@ describe('Profile — loading & initial render', () => {
   test('Save button is disabled when background is unchanged', async () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     await waitFor(() => expect(screen.getByDisplayValue(SAMPLE_PROFILE.background)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled()
   })
 })
 
@@ -67,14 +78,14 @@ describe('Profile — background editing', () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'Updated background text' } })
-    expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: /^save$/i })).not.toBeDisabled()
   })
 
   test('Save calls patchBackground with updated text', async () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'New background' } })
-    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(mockPatchBackground).toHaveBeenCalledWith('New background'))
   })
 
@@ -82,7 +93,7 @@ describe('Profile — background editing', () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'New background' } })
-    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     expect(await screen.findByText(/Saved/)).toBeInTheDocument()
   })
 
@@ -91,7 +102,7 @@ describe('Profile — background editing', () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={onProfileChange} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'New background' } })
-    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(onProfileChange).toHaveBeenCalled())
   })
 
@@ -100,7 +111,7 @@ describe('Profile — background editing', () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'New background' } })
-    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     expect(await screen.findByText('Save error')).toBeInTheDocument()
   })
 
@@ -109,7 +120,7 @@ describe('Profile — background editing', () => {
     render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
     const textarea = await screen.findByDisplayValue(SAMPLE_PROFILE.background)
     fireEvent.change(textarea, { target: { value: 'New background' } })
-    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeInTheDocument()
   })
 })
@@ -326,5 +337,32 @@ describe('Profile — PersonalitySection', () => {
     // Form should be visible with existing values
     expect(screen.getByDisplayValue('ISTJ')).toBeInTheDocument()
     expect(screen.getByDisplayValue('1w2')).toBeInTheDocument()
+  })
+})
+
+describe('Profile — name section', () => {
+  test('shows name inputs pre-filled when profile has first_name and last_name', async () => {
+    mockFetchProfile.mockResolvedValue({ ...SAMPLE_PROFILE, first_name: 'Ada', last_name: 'Lovelace' })
+    render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
+    await waitFor(() => expect(screen.getByDisplayValue('Ada')).toBeInTheDocument())
+    expect(screen.getByDisplayValue('Lovelace')).toBeInTheDocument()
+  })
+
+  test('Save name button calls patchName with current input values', async () => {
+    render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
+    await waitFor(() => expect(screen.getByPlaceholderText('First name')).toBeInTheDocument())
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Grace' } })
+    fireEvent.change(screen.getByPlaceholderText('Last name (optional)'), { target: { value: 'Hopper' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
+    await waitFor(() => expect(mockPatchName).toHaveBeenCalledWith('Grace', 'Hopper'))
+  })
+
+  test('calls setFirstName and setLastName in AuthContext after successful save', async () => {
+    render(<Profile onBack={vi.fn()} onGoToSettings={vi.fn()} onProfileChange={vi.fn()} />)
+    await waitFor(() => expect(screen.getByPlaceholderText('First name')).toBeInTheDocument())
+    fireEvent.change(screen.getByPlaceholderText('First name'), { target: { value: 'Grace' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save name' }))
+    await waitFor(() => expect(mockSetFirstName).toHaveBeenCalledWith('Grace'))
+    expect(mockSetLastName).toHaveBeenCalledWith(null)
   })
 })
