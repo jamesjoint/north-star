@@ -177,7 +177,7 @@ export default function App() {
                   gap: 8,
                   background: 'var(--screen)',
                 }}>
-                  <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Jobs</span>
+                  <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Radar</span>
                   <span style={{ fontSize: 12, color: 'var(--text-4)' }}>{jobs.length}</span>
                 </div>
 

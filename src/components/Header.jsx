@@ -4,8 +4,8 @@ import { signOut as apiSignOut } from '../api.js'
 import { avatarColor, initials } from '../utils/avatar.js'
 
 const TABS = [
-  { id: 'search',   label: 'Jobs' },
-  { id: 'tracker',  label: 'Tracker' },
+  { id: 'search',   label: 'Radar' },
+  { id: 'tracker',  label: 'Constellation' },
   { id: 'settings', label: 'Settings' },
 ]
 

@@ -364,7 +364,7 @@ function BoardNameStep({ onComplete }) {
   return (
     <>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
-        Name your tracker board
+        Name your constellation board
       </h2>
       <p style={{ fontSize: 13, color: 'var(--text-3)', lineHeight: 1.5, marginBottom: 28 }}>
         Boards let you organise your applications. You can create more later.

@@ -414,7 +414,7 @@ export default function Tracker({ jobs, onUpdate, onAddJob, onDelete, onSelect, 
       {/* Table */}
       {tracked.length === 0 ? (
         <p style={{ color: 'var(--text-3)', textAlign: 'center', marginTop: 60, fontSize: 14, padding: '0 32px', lineHeight: 1.7 }}>
-          No tracked jobs yet — use the Track… dropdown on any job to start.
+          Your constellation is empty — use the Track… dropdown on any job in Radar to add it here.
         </p>
       ) : (
         <div style={{ overflowY: 'auto', flex: 1 }}>
