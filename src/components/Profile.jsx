@@ -57,7 +57,11 @@ function RadarChart({ dimensions, weights }) {
         <path key={i} d={d} stroke="rgba(0,0,0,0.1)" strokeWidth={1} />
       ))}
       {/* Data polygon */}
-      <path d={dataPath} fill="rgba(48,197,255,0.18)" stroke="var(--blue)" strokeWidth={2} />
+      <path d={dataPath} fill="rgba(220,0,255,0.12)" stroke="#dc00ff" strokeWidth={2} />
+      {/* Vertex dots */}
+      {dataPts.map((p, i) => (
+        <circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r={3} fill="#dc00ff" />
+      ))}
       {/* Labels */}
       {entries.map(([key, dim], i) => {
         const [lx, ly] = polar(angles[i], LABEL_R)
@@ -67,7 +71,7 @@ function RadarChart({ dimensions, weights }) {
             key={key}
             x={lx.toFixed(1)} y={ly.toFixed(1)}
             textAnchor="middle" dominantBaseline="middle"
-            fontSize={9} fill="#8e8e93"
+            fontSize={12} fill="#8e8e93"
             style={{ fontFamily: 'var(--font)' }}
           >
             {label}
@@ -169,7 +173,7 @@ function PersonalitySection({ personality: initial }) {
                 ))}
                 <div style={{ padding: '10px 16px', borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
                   <button onClick={() => { setP({ ...current }); setEditing(true) }} style={editBtn}>Edit</button>
-                  {saved && <span style={{ marginLeft: 12, fontSize: 13, color: '#A0CB3B' }}>✓ Saved</span>}
+                  {saved && <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--score-hi)' }}>✓ Saved</span>}
                 </div>
               </>
             )}
@@ -223,7 +227,7 @@ function PersonalitySection({ personality: initial }) {
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={handleSave} disabled={saving} style={{
                 padding: '9px 20px', borderRadius: 8, border: 'none',
-                background: 'linear-gradient(180deg, #6dd4ff 0%, #30C5FF 100%)',
+                background: 'var(--accent)',
                 color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', cursor: 'pointer',
               }}>
                 {saving ? 'Saving…' : 'Save'}
@@ -255,7 +259,7 @@ function actionBtn(variant) {
     fontSize: 14, fontWeight: 500, fontFamily: 'var(--font)',
     cursor: 'pointer', transition: 'all 0.2s',
   }
-  if (variant === 'blue') return { ...base, background: 'linear-gradient(180deg, #6dd4ff 0%, #30C5FF 100%)', color: '#fff', fontWeight: 600 }
+  if (variant === 'blue') return { ...base, background: 'var(--accent)', color: '#fff', fontWeight: 600 }
   return { ...base, background: 'rgba(0,0,0,0.07)', color: 'var(--text)' }
 }
 
@@ -452,7 +456,7 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
             style={{
               padding: '10px 24px', borderRadius: 10, border: 'none',
               background: isDirty && background.trim()
-                ? 'linear-gradient(180deg, #6dd4ff 0%, #30C5FF 100%)'
+                ? 'var(--accent)'
                 : 'rgba(0,0,0,0.08)',
               color: isDirty && background.trim() ? '#fff' : '#8e8e93',
               fontSize: 15, fontWeight: 600, fontFamily: 'var(--font)',
@@ -465,8 +469,8 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
-          {saved && <span style={{ fontSize: 14, color: '#A0CB3B' }}>✓ Saved — re-scoring jobs</span>}
-          {error && <span style={{ fontSize: 14, color: '#EC5298' }}>{error}</span>}
+          {saved && <span style={{ fontSize: 14, color: 'var(--score-hi)' }}>✓ Saved — re-scoring jobs</span>}
+          {error && <span style={{ fontSize: 14, color: 'var(--score-lo)' }}>{error}</span>}
         </div>
       )}
 
@@ -557,12 +561,12 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
                 Edit dimensions
               </button>
               <button onClick={handleRegenerate} disabled={regenerating} style={actionBtn('default')}>
-                {regenerating ? 'Regenerating…' : 'Refresh Dimensions'}
+                {regenerating ? 'Regenerating…' : 'Recalibrate my score'}
               </button>
             </>
           )}
-          {savedDims && <span style={{ fontSize: 13, color: '#A0CB3B' }}>✓ Saved — re-scoring jobs</span>}
-          {regenerated && <span style={{ fontSize: 13, color: '#A0CB3B' }}>✓ Regenerating — reload to see new dimensions</span>}
+          {savedDims && <span style={{ fontSize: 13, color: 'var(--score-hi)' }}>✓ Saved — re-scoring jobs</span>}
+          {regenerated && <span style={{ fontSize: 13, color: 'var(--score-hi)' }}>✓ Regenerating — reload to see new dimensions</span>}
         </div>
       )}
 
