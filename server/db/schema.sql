@@ -123,6 +123,17 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id          text        NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,
+  background       text,
+  weights          jsonb       NOT NULL DEFAULT '{}',
+  dimensions       jsonb,
+  personality      jsonb,
+  profile_summary  text,
+  onboarding_done  boolean     NOT NULL DEFAULT false,
+  updated_at       timestamptz NOT NULL DEFAULT now()
+);
+
 -- Idempotently add first_name column to profiles
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -142,17 +153,6 @@ DO $$ BEGIN
     ALTER TABLE profiles ADD COLUMN last_name text;
   END IF;
 END $$;
-
-CREATE TABLE IF NOT EXISTS profiles (
-  user_id          text        NOT NULL PRIMARY KEY REFERENCES "user"("id") ON DELETE CASCADE,
-  background       text,
-  weights          jsonb       NOT NULL DEFAULT '{}',
-  dimensions       jsonb,
-  personality      jsonb,
-  profile_summary  text,
-  onboarding_done  boolean     NOT NULL DEFAULT false,
-  updated_at       timestamptz NOT NULL DEFAULT now()
-);
 
 CREATE TABLE IF NOT EXISTS app_invites (
   code              text        NOT NULL PRIMARY KEY,
