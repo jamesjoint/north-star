@@ -13,6 +13,8 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
   const { user, logout, firstName, lastName } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+  const prevTrackedRef = useRef(trackedCount)
+  const [badgeBounce, setBadgeBounce] = useState(false)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -22,6 +24,14 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
     document.addEventListener('mousedown', onOutside)
     return () => document.removeEventListener('mousedown', onOutside)
   }, [menuOpen])
+
+  useEffect(() => {
+    if (trackedCount > prevTrackedRef.current) {
+      setBadgeBounce(true)
+      setTimeout(() => setBadgeBounce(false), 300)
+    }
+    prevTrackedRef.current = trackedCount
+  }, [trackedCount])
 
   async function handleSignOut() {
     setMenuOpen(false)
@@ -117,6 +127,9 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
                   fontSize: 10,
                   fontWeight: 700,
                   verticalAlign: 'middle',
+                  display: 'inline-block',
+                  transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                  transform: badgeBounce ? 'scale(1.4)' : 'scale(1)',
                 }}>
                   {trackedCount}
                 </span>
@@ -217,8 +230,8 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
                     marginTop: 4,
                     fontSize: 10,
                     fontWeight: 600,
-                    color: 'var(--blue)',
-                    background: 'rgba(48,197,255,0.12)',
+                    color: 'var(--accent)',
+                    background: 'rgba(220,0,255,0.12)',
                     borderRadius: 4,
                     padding: '1px 6px',
                     letterSpacing: 0.3,
