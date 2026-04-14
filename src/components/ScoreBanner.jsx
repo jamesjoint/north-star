@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { fetchRescoreStatus } from '../api.js'
 
-/**
- * Shows a banner while scoring is in progress; calls onDone() when it finishes
- * so the parent can refresh the job list.
- */
 export default function ScoreBanner({ onDone }) {
   const [running, setRunning] = useState(false)
-  const [justFinished, setJustFinished] = useState(false)
+  const [finished, setFinished] = useState(false)
   const [count, setCount] = useState(null)
+  const [dismissed, setDismissed] = useState(false)
   const pollRef = useRef(null)
   const wasRunningRef = useRef(false)
-  const mountTs = useRef(Date.now())
+  const seenTsRef = useRef(null)
+  const onDoneRef = useRef(onDone)
+  useEffect(() => { onDoneRef.current = onDone }, [onDone])
 
   useEffect(() => {
     async function poll() {
@@ -19,24 +18,20 @@ export default function ScoreBanner({ onDone }) {
         const s = await fetchRescoreStatus()
         if (s.running) {
           setRunning(true)
+          setFinished(false)
+          setDismissed(false)
           wasRunningRef.current = true
         } else {
-          if (wasRunningRef.current) {
-            // Scoring just completed
-            setRunning(false)
-            setCount(s.lastCount)
-            setJustFinished(true)
-            wasRunningRef.current = false
-            onDone?.()
-            setTimeout(() => setJustFinished(false), 5000)
-          } else if (s.lastTs && s.lastTs > mountTs.current) {
-            // Finished between last poll interval and this one
-            setCount(s.lastCount)
-            setJustFinished(true)
-            onDone?.()
-            setTimeout(() => setJustFinished(false), 5000)
-          }
           setRunning(false)
+          const isNew = s.lastTs && s.lastTs !== seenTsRef.current
+          if (isNew && (wasRunningRef.current || !seenTsRef.current)) {
+            seenTsRef.current = s.lastTs
+            wasRunningRef.current = false
+            setCount(s.lastCount)
+            setFinished(true)
+            setDismissed(false)
+            onDoneRef.current?.()
+          }
         }
       } catch { /* ignore */ }
     }
@@ -44,9 +39,9 @@ export default function ScoreBanner({ onDone }) {
     poll()
     pollRef.current = setInterval(poll, 3000)
     return () => clearInterval(pollRef.current)
-  }, [onDone])
+  }, [])
 
-  if (!running && !justFinished) return null
+  if (!running && (!finished || dismissed)) return null
 
   return (
     <div style={{
@@ -54,12 +49,10 @@ export default function ScoreBanner({ onDone }) {
       alignItems: 'center',
       gap: 8,
       padding: '8px 16px',
-      background: running
-        ? 'rgba(48,197,255,0.08)'
-        : 'rgba(160,203,59,0.10)',
+      background: running ? 'rgba(220,0,255,0.06)' : 'rgba(29,111,66,0.08)',
       borderBottom: '0.5px solid rgba(0,0,0,0.08)',
       fontSize: 13,
-      color: running ? 'var(--blue)' : '#5a8a1a',
+      color: running ? 'var(--accent)' : 'var(--score-hi)',
     }}>
       {running ? (
         <>
@@ -68,7 +61,7 @@ export default function ScoreBanner({ onDone }) {
               <span key={i} style={{
                 display: 'inline-block',
                 width: 4, height: 4, borderRadius: '50%',
-                background: 'var(--blue)',
+                background: 'var(--accent)',
                 animation: `pulse 1.2s ease-in-out ${i * 0.4}s infinite`,
               }} />
             ))}
@@ -76,7 +69,19 @@ export default function ScoreBanner({ onDone }) {
           Scoring your jobs…
         </>
       ) : (
-        <>✓ {count != null ? `${count} jobs scored` : 'Scoring complete'} — scores updated</>
+        <>
+          ✓ {count != null ? `${count} jobs scored` : 'Scoring complete'} — scores updated
+          <button
+            onClick={() => setDismissed(true)}
+            style={{
+              marginLeft: 'auto', background: 'none', border: 'none',
+              cursor: 'pointer', fontSize: 14, color: 'var(--score-hi)',
+              padding: '0 4px', lineHeight: 1, opacity: 0.6,
+            }}
+          >
+            ✕
+          </button>
+        </>
       )}
       <style>{`@keyframes pulse { 0%,100%{opacity:.3} 50%{opacity:1} }`}</style>
     </div>
