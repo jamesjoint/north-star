@@ -3,9 +3,9 @@
  */
 export function scoreColor(s) {
   if (s == null) return '#c7c7cc'
-  if (s >= 7) return '#A0CB3B'
-  if (s >= 4) return '#FAB71F'
-  return '#EC5298'
+  if (s >= 7) return '#1D6F42'
+  if (s >= 4) return '#B07D00'
+  return '#999'
 }
 
 /**

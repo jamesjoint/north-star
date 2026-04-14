@@ -13,15 +13,12 @@
   --chrome-2: #2c2c2e;
   --chrome-3: #3a3a3c;
 
-  /* Brand palette */
-  --brand-blue:  #30C5FF;
-  --brand-green: #A0CB3B;
-  --brand-amber: #FAB71F;
-  --brand-pink:  #EC5298;
+  /* Accent — ultraviolet */
+  --accent: #dc00ff;
 
-  /* Primary action — brand blue */
-  --blue:       #30C5FF;
-  --blue-light: #4db8f5;
+  /* Primary action — alias so legacy var(--blue) usages pick up accent */
+  --blue:       var(--accent);
+  --blue-light: var(--accent);
   --blue-text:  #ffffff;
 
   /* Text hierarchy */
@@ -42,10 +39,10 @@
   --np-text-2: #aeaeb2;
   --np-text-3: #636366;
 
-  /* Score — brand green / amber / pink */
-  --score-hi:  #A0CB3B;
-  --score-mid: #FAB71F;
-  --score-lo:  #EC5298;
+  /* Score — editorial green / amber / gray */
+  --score-hi:  #1D6F42;
+  --score-mid: #B07D00;
+  --score-lo:  #999;
 
   /* Helvetica Neue is the soul of iPod OS */
   --font:   'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
@@ -99,6 +96,12 @@ html, body {
 }
 .row-anim {
   animation: slideIn 0.18s ease both;
+}
+
+/* Detail pane fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* iOS-style range input */
