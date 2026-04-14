@@ -2,6 +2,55 @@ import { useState, useEffect, useRef } from 'react'
 import { fetchRescoreStatus } from '../api.js'
 import { buildDimList } from '../utils/jobDetail.js'
 
+function RadarChart({ dimensions, weights }) {
+  const entries = Object.entries(dimensions)
+  const N = entries.length
+  if (N < 3) return null
+
+  const SIZE = 200
+  const CX = SIZE / 2
+  const CY = SIZE / 2
+  const R = 72
+  const LABEL_R = R + 20
+
+  function polar(angle, r) {
+    return [CX + r * Math.cos(angle), CY + r * Math.sin(angle)]
+  }
+
+  const angles = entries.map((_, i) => (i / N) * 2 * Math.PI - Math.PI / 2)
+  const rings = [0.25, 0.5, 0.75, 1].map(frac => {
+    const pts = angles.map(a => polar(a, R * frac))
+    return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ' Z'
+  })
+
+  const dataPts = entries.map(([key], i) => {
+    const w = weights?.[key] ?? 1
+    return polar(angles[i], R * Math.min(w / 5, 1))
+  })
+  const dataPath = dataPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ') + ' Z'
+  const axes = angles.map(a => { const [x2, y2] = polar(a, R); return `M${CX},${CY} L${x2.toFixed(1)},${y2.toFixed(1)}` })
+
+  return (
+    <svg width={SIZE} height={SIZE} style={{ display: 'block', margin: '0 auto' }}>
+      {rings.map((d, i) => <path key={i} d={d} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={1} />)}
+      {axes.map((d, i) => <path key={i} d={d} stroke="rgba(0,0,0,0.1)" strokeWidth={1} />)}
+      <path d={dataPath} fill="rgba(220,0,255,0.12)" stroke="#dc00ff" strokeWidth={2} />
+      {dataPts.map((p, i) => <circle key={i} cx={p[0].toFixed(1)} cy={p[1].toFixed(1)} r={3} fill="#dc00ff" />)}
+      {entries.map(([key, dim], i) => {
+        const [lx, ly] = polar(angles[i], LABEL_R)
+        return (
+          <text key={key} x={lx.toFixed(1)} y={ly.toFixed(1)}
+            textAnchor="middle" dominantBaseline="middle"
+            fontSize={11} fill="#8e8e93" style={{ fontFamily: 'var(--font)' }}>
+            {(dim.label || key).split(' ')[0]}
+          </text>
+        )
+      })}
+      <circle cx={CX} cy={CY} r={3} fill="rgba(0,0,0,0.15)" />
+    </svg>
+  )
+}
+
 const DIMENSIONS = [
   {
     key: 'core_mechanism',
@@ -109,6 +158,19 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
           <span style={{ fontSize: 11, color: 'var(--blue)' }}>✦ personalised</span>
         )}
       </div>
+
+      {/* Spider chart — live preview of weights */}
+      {profileDimensions && Object.keys(profileDimensions).length >= 3 && (
+        <div style={{
+          background: '#fff',
+          borderTop: '0.5px solid rgba(0,0,0,0.15)',
+          borderBottom: '0.5px solid rgba(0,0,0,0.15)',
+          padding: '20px 16px',
+          marginBottom: 16,
+        }}>
+          <RadarChart dimensions={profileDimensions} weights={weights} />
+        </div>
+      )}
 
       {/* Grouped table — one cell per dimension */}
       <div style={{

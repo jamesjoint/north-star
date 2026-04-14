@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchProfile, patchBackground, regenerateDimensions, patchPersonality, patchDimensions, patchName } from '../api.js'
 import { cleanPersonality } from '../utils/personality.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
@@ -284,6 +284,12 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
   const [nameLast, setNameLast] = useState('')
   const [savingName, setSavingName] = useState(false)
   const [savedName, setSavedName] = useState(false)
+  const [generatingDims, setGeneratingDims] = useState(false)
+  const dimPollRef = useRef(null)
+
+  useEffect(() => {
+    return () => clearInterval(dimPollRef.current)
+  }, [])
 
   useEffect(() => {
     fetchProfile()
@@ -315,6 +321,23 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
       setSaved(true)
       onProfileChange?.()
       setTimeout(() => setSaved(false), 4000)
+      // Server auto-generates dimensions after background save (fire-and-forget).
+      // Poll until they appear so the spider chart shows without a full page reload.
+      clearInterval(dimPollRef.current)
+      setGeneratingDims(true)
+      let attempts = 0
+      dimPollRef.current = setInterval(async () => {
+        attempts++
+        try {
+          const updated = await fetchProfile()
+          if (updated?.dimensions && Object.keys(updated.dimensions).length >= 3) {
+            setProfile(updated)
+            setGeneratingDims(false)
+            clearInterval(dimPollRef.current)
+          }
+        } catch { /* ignore */ }
+        if (attempts >= 20) { clearInterval(dimPollRef.current); setGeneratingDims(false) }
+      }, 4000)
     } catch (err) {
       setError(err.message || 'Save failed.')
     } finally {
@@ -469,7 +492,9 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
           >
             {saving ? 'Saving…' : 'Save'}
           </button>
-          {saved && <span style={{ fontSize: 14, color: 'var(--score-hi)' }}>✓ Saved — re-scoring jobs</span>}
+          {saved && <span style={{ fontSize: 14, color: 'var(--score-hi)' }}>
+            {generatingDims ? '✓ Saved — generating dimensions…' : '✓ Saved'}
+          </span>}
           {error && <span style={{ fontSize: 14, color: 'var(--score-lo)' }}>{error}</span>}
         </div>
       )}
