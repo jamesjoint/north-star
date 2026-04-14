@@ -120,12 +120,12 @@ export default function FilterBar({ sources, sourceCounts = {}, filters, onChang
 
       {/* Min score */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 12, color: '#8e8e93', whiteSpace: 'nowrap' }}>Min</span>
+        <span style={{ fontSize: 12, color: '#8e8e93', whiteSpace: 'nowrap' }}>Min fit score</span>
         <input
           type="range" min={0} max={10} step={1}
           value={filters.minScore}
           onChange={e => onChange({ ...filters, minScore: Number(e.target.value) })}
-          style={{ width: 60, accentColor: 'var(--blue)' }}
+          style={{ width: 60 }}
         />
         <span style={{ fontSize: 12, color: '#8e8e93', minWidth: 14 }}>
           {filters.minScore || '—'}
@@ -198,13 +198,13 @@ export default function FilterBar({ sources, sourceCounts = {}, filters, onChang
         <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#8e8e93', cursor: 'pointer' }}>
           <input type="checkbox" checked={!!filters.showExpired}
             onChange={e => onChange({ ...filters, showExpired: e.target.checked })}
-            style={{ accentColor: 'var(--blue)', width: 14, height: 14 }} />
+            style={{ width: 14, height: 14 }} />
           Expired
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#8e8e93', cursor: 'pointer' }}>
           <input type="checkbox" checked={!!filters.hideNoJD}
             onChange={e => onChange({ ...filters, hideNoJD: e.target.checked })}
-            style={{ accentColor: 'var(--blue)', width: 14, height: 14 }} />
+            style={{ width: 14, height: 14 }} />
           Has JD
         </label>
       </div>

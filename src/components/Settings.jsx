@@ -132,8 +132,8 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
                 </span>
                 <span style={{
                   fontSize: 11, fontWeight: 700,
-                  color: value >= 3 ? 'var(--blue)' : '#8e8e93',
-                  background: value >= 3 ? 'rgba(48,197,255,0.12)' : 'rgba(0,0,0,0.05)',
+                  color: value >= 3 ? 'var(--accent)' : '#8e8e93',
+                  background: value >= 3 ? 'rgba(220,0,255,0.12)' : 'rgba(0,0,0,0.05)',
                   borderRadius: 20,
                   padding: '2px 9px',
                   letterSpacing: '0.02em',
@@ -177,9 +177,8 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
             padding: '10px 24px',
             borderRadius: 10,
             border: 'none',
-            /* iOS blue button gradient */
             background: isDirty
-              ? 'linear-gradient(180deg, #6dd4ff 0%, #30C5FF 100%)'
+              ? 'var(--accent)'
               : 'rgba(0,0,0,0.08)',
             color: isDirty ? '#fff' : '#8e8e93',
             fontSize: 15,
@@ -219,10 +218,10 @@ export default function Settings({ liveWeights, setLiveWeights, savedWeights, sa
           <span style={{ fontSize: 14, color: '#8e8e93' }}>Re-scoring…</span>
         )}
         {status === 'done' && (
-          <span style={{ fontSize: 14, color: '#A0CB3B' }}>✓ {doneCount} jobs updated</span>
+          <span style={{ fontSize: 14, color: 'var(--score-hi)' }}>✓ {doneCount} jobs updated</span>
         )}
         {status === 'error' && (
-          <span style={{ fontSize: 14, color: '#EC5298' }}>Save failed</span>
+          <span style={{ fontSize: 14, color: 'var(--score-lo)' }}>Save failed</span>
         )}
       </div>
 
