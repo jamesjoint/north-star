@@ -78,58 +78,67 @@ export default function JobDetail({ job, onAddToConstellation, onNotApplying }) 
       fontFamily: 'var(--font)',
     }}>
 
-      {/* Role detail label */}
-      <div style={{
-        fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: '#999', marginBottom: 10,
-      }}>
-        Role detail
-      </div>
+      {/* Header row: title/meta left, score box top-right */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 4 }}>
 
-      {/* Title */}
-      <div style={{
-        fontSize: 24, fontWeight: 500, color: '#1a1a1a',
-        lineHeight: 1.2, marginBottom: 6,
-      }}>
-        {job.title}
-      </div>
-
-      {/* Company · meta */}
-      <div style={{ fontSize: 13, color: '#999', marginBottom: 14 }}>
-        {metaParts.join(' · ')}
-      </div>
-
-      {/* Source badge */}
-      {job.source && (
-        <span style={{
-          display: 'inline-block',
-          fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
-          color: '#999', border: '0.5px solid rgba(0,0,0,0.12)',
-          padding: '3px 8px', borderRadius: 2, marginBottom: 16,
-        }}>
-          via {job.source}
-        </span>
-      )}
-
-      {/* Big score + count-up */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-        <div
-          ref={scoreRef}
-          style={{
-            fontSize: 44, fontWeight: 500, lineHeight: 1,
-            fontVariantNumeric: 'tabular-nums', color: '#999',
-            transition: 'color 0.6s ease',
-          }}
-        >
-          0.0
+        {/* Left: label + title + meta + source */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: '#999', marginBottom: 10,
+          }}>
+            Role detail
+          </div>
+          <div style={{
+            fontSize: 24, fontWeight: 500, color: '#1a1a1a',
+            lineHeight: 1.2, marginBottom: 6,
+          }}>
+            {job.title}
+          </div>
+          <div style={{ fontSize: 13, color: '#999', marginBottom: 10 }}>
+            {metaParts.join(' · ')}
+          </div>
+          {job.source && (
+            <span style={{
+              display: 'inline-block',
+              fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
+              color: '#999', border: '0.5px solid rgba(0,0,0,0.12)',
+              padding: '3px 8px', borderRadius: 2,
+            }}>
+              via {job.source}
+            </span>
+          )}
         </div>
-        <div style={{ fontSize: 11, color: '#999', paddingBottom: 6 }}>out of 10</div>
-      </div>
-      <div style={{
-        fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
-        color: '#999', marginBottom: 14,
-      }}>
-        Fit score
+
+        {/* Right: score box */}
+        <div style={{
+          flexShrink: 0,
+          background: '#f7f7f7',
+          border: '1px solid #e2e2e2',
+          borderRadius: 12,
+          padding: '12px 16px',
+          textAlign: 'center',
+          minWidth: 80,
+        }}>
+          <div
+            ref={scoreRef}
+            style={{
+              fontSize: 36, fontWeight: 500, lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums', color: '#999',
+              transition: 'color 0.6s ease',
+            }}
+          >
+            0.0
+          </div>
+          <div style={{ fontSize: 10, color: '#bbb', marginTop: 3 }}>out of 10</div>
+          <div style={{
+            fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase',
+            color: '#bbb', marginTop: 2,
+          }}>
+            Fit score
+          </div>
+        </div>
+
       </div>
 
       {/* Verdict */}
