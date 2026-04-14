@@ -9,6 +9,12 @@ function scoreColor(s) {
   return '#999'
 }
 
+function scoreBoxStyle(s) {
+  if (s != null && s >= 7) return { background: '#edf7f1', border: '1px solid #a8d5bb' }
+  if (s != null && s >= 4) return { background: '#fdf8e8', border: '1px solid #d4b96a' }
+  return { background: '#f7f7f7', border: '1px solid #e2e2e2' }
+}
+
 const REMOTE_LABELS = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On-site' }
 
 export default function JobDetail({ job, onAddToConstellation, onNotApplying }) {
@@ -113,8 +119,7 @@ export default function JobDetail({ job, onAddToConstellation, onNotApplying }) 
         {/* Right: score box */}
         <div style={{
           flexShrink: 0,
-          background: '#f7f7f7',
-          border: '1px solid #e2e2e2',
+          ...scoreBoxStyle(score),
           borderRadius: 12,
           padding: '12px 16px',
           textAlign: 'center',
