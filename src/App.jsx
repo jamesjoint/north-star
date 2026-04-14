@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useJobs } from './hooks/useJobs.js'
@@ -14,7 +14,7 @@ import AdminPanel from './components/AdminPanel.jsx'
 import ScoreBanner from './components/ScoreBanner.jsx'
 
 export default function App() {
-  const { user } = useAuth()
+  const { user, firstName } = useAuth()
   const {
     jobs, allJobs, unseenCount, loading, refreshing, error, lastRefreshed,
     filters, setFilters, refresh, reloadJobs, reloadProfile, updateStatus, markSeen, addJob, removeJob,
@@ -45,6 +45,7 @@ export default function App() {
   function setTab(t) { navigate(TAB_PATHS[t] ?? '/') }
 
   const [selectedId, setSelectedId] = useState(null)
+  const [passingId, setPassingId] = useState(null)
 
   const selectedJob = allJobs.find(j => j.id === selectedId) || null
   const sources = [...new Set(allJobs.map(j => j.source))].sort()
@@ -54,9 +55,31 @@ export default function App() {
   }, {})
   const trackedCount = allJobs.filter(j => j.status && j.status !== 'none').length
 
+  // Auto-select first Radar job on load
+  useEffect(() => {
+    if (tab === 'search' && !selectedId && jobs.length > 0) {
+      setSelectedId(jobs[0].id)
+    }
+  }, [tab, selectedId, jobs]) // eslint-disable-line
+
   function handleSelect(id) {
     setSelectedId(prev => prev === id ? null : id)
     if (id) markSeen(id)
+  }
+
+  function handleNotApplying(jobId) {
+    const idx = jobs.findIndex(j => j.id === jobId)
+    const nextJob = jobs[idx + 1] || jobs[idx - 1] || null
+    setPassingId(jobId)
+    setTimeout(() => {
+      updateStatus(jobId, { status: 'Not Applying' })
+      setSelectedId(nextJob ? nextJob.id : null)
+      setPassingId(null)
+    }, 350)
+  }
+
+  function handleAddToConstellation(jobId) {
+    updateStatusAndRefreshBoards(jobId, { status: 'Saved' })
   }
 
   return (
@@ -84,7 +107,7 @@ export default function App() {
         overflow: 'hidden',
       }}>
 
-        {/* Tracker */}
+        {/* Tracker / Constellation */}
         {tab === 'tracker' && (
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
             <div style={{
@@ -105,21 +128,14 @@ export default function App() {
                 onDeleteBoard={deleteBoardHook}
               />
             </div>
-            {selectedJob && (() => {
-              const trackedList = allJobs.filter(j => j.status && j.status !== 'none')
-              const idx = trackedList.findIndex(j => j.id === selectedId)
-              return (
-                <div style={{ width: 380, flexShrink: 0, overflowY: 'auto' }}>
-                  <JobDetail
-                    job={selectedJob}
-                    onClose={() => setSelectedId(null)}
-                    onStatusChange={updateStatusAndRefreshBoards}
-                    onPrev={idx > 0 ? () => setSelectedId(trackedList[idx - 1].id) : null}
-                    onNext={idx < trackedList.length - 1 ? () => setSelectedId(trackedList[idx + 1].id) : null}
-                  />
-                </div>
-              )
-            })()}
+            {selectedJob && (
+              <div style={{ width: 380, flexShrink: 0, overflowY: 'auto' }}>
+                <JobDetail
+                  key={selectedJob.id}
+                  job={selectedJob}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -155,34 +171,39 @@ export default function App() {
           </div>
         )}
 
-        {/* Job Search */}
+        {/* Job Search / Radar */}
         {tab === 'search' && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <FilterBar sources={sources} sourceCounts={sourceCounts} filters={filters} onChange={setFilters} />
             <ScoreBanner onDone={reloadJobs} />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-              {/* List */}
+
+              {/* Left list — always 300px */}
               <div style={{
-                flex: selectedJob ? '0 0 380px' : 1,
+                width: 300,
+                flexShrink: 0,
+                borderRight: '0.5px solid rgba(0,0,0,0.08)',
                 overflowY: 'auto',
+                background: '#fff',
                 display: 'flex',
                 flexDirection: 'column',
-                background: 'var(--screen)',
               }}>
+                {/* "All Radar — N roles" counter */}
                 <div style={{
-                  padding: '8px 16px 4px',
-                  borderBottom: '0.5px solid rgba(0,0,0,0.12)',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: 8,
-                  background: 'var(--screen)',
+                  padding: '12px 20px 8px',
+                  borderBottom: '0.5px solid rgba(0,0,0,0.08)',
+                  flexShrink: 0,
                 }}>
-                  <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>All Radar</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-4)' }}>{jobs.length}</span>
+                  <span style={{
+                    fontSize: 10, letterSpacing: '0.1em',
+                    textTransform: 'uppercase', color: '#999',
+                  }}>
+                    All Radar — {jobs.length} roles
+                  </span>
                 </div>
 
                 {refreshing && (
-                  <p style={{ color: 'var(--text-3)', textAlign: 'center', marginTop: 48, fontSize: 13 }}>
+                  <p style={{ color: '#999', textAlign: 'center', marginTop: 48, fontSize: 13 }}>
                     Scanning…
                   </p>
                 )}
@@ -193,39 +214,43 @@ export default function App() {
                 )}
                 {!refreshing && !error && jobs.length === 0 && (
                   <p style={{
-                    color: 'var(--text-3)', textAlign: 'center', marginTop: 60,
-                    fontSize: 14, padding: '0 32px', lineHeight: 1.6,
+                    color: '#999', textAlign: 'center', marginTop: 60,
+                    fontSize: 14, padding: '0 24px', lineHeight: 1.6,
                   }}>
-                    No jobs match your filters. Try adjusting them above, or refresh to scan for new listings.
+                    hey {firstName || 'you'}, you're a superstar and someday you won't need this
                   </p>
                 )}
                 {jobs.map(job => (
                   <JobCard
                     key={job.id}
                     job={job}
-                    onSelect={handleSelect}
+                    compact
                     selected={job.id === selectedId}
-                    onStatusChange={updateStatusAndRefreshBoards}
-                    onDelete={removeJob}
+                    passing={job.id === passingId}
+                    onSelect={handleSelect}
                   />
                 ))}
               </div>
 
-              {/* Detail */}
-              {selectedJob && (() => {
-                const idx = jobs.findIndex(j => j.id === selectedId)
-                return (
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <JobDetail
-                      job={selectedJob}
-                      onClose={() => setSelectedId(null)}
-                      onStatusChange={updateStatusAndRefreshBoards}
-                      onPrev={idx > 0 ? () => setSelectedId(jobs[idx - 1].id) : null}
-                      onNext={idx < jobs.length - 1 ? () => setSelectedId(jobs[idx + 1].id) : null}
-                    />
+              {/* Right detail — always flex:1 */}
+              <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+                {selectedJob ? (
+                  <JobDetail
+                    key={selectedJob.id}
+                    job={selectedJob}
+                    onAddToConstellation={handleAddToConstellation}
+                    onNotApplying={handleNotApplying}
+                  />
+                ) : (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    height: '100%', color: '#999', fontSize: 13,
+                  }}>
+                    Select a role
                   </div>
-                )
-              })()}
+                )}
+              </div>
+
             </div>
           </div>
         )}
