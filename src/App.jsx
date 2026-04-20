@@ -129,7 +129,16 @@ export default function App() {
               />
             </div>
             {selectedJob && (
-              <div style={{ width: 380, flexShrink: 0, overflowY: 'auto' }}>
+              <div style={{ width: 380, flexShrink: 0, overflowY: 'auto', position: 'relative' }}>
+                <button
+                  onClick={() => setSelectedId(null)}
+                  style={{
+                    position: 'absolute', top: 12, right: 12, zIndex: 10,
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 18, color: '#999', lineHeight: 1, padding: 4,
+                  }}
+                  aria-label="Close"
+                >×</button>
                 <JobDetail
                   key={selectedJob.id}
                   job={selectedJob}
