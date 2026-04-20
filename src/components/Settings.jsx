@@ -41,7 +41,7 @@ function RadarChart({ dimensions, weights }) {
         return (
           <text key={key} x={lx.toFixed(1)} y={ly.toFixed(1)}
             textAnchor="middle" dominantBaseline="middle"
-            fontSize={11} fill="#8e8e93" style={{ fontFamily: 'var(--font)' }}>
+            fontSize={9} fill="#8e8e93" style={{ fontFamily: 'var(--font)' }}>
             {(dim.label || key).split(' ')[0]}
           </text>
         )

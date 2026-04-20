@@ -78,7 +78,7 @@ export default function Header({ tab, setTab, trackedCount, unseenCount, refresh
         color: 'var(--text-2)',
       }}>
         <span style={{ color: 'var(--blue)', fontSize: 17 }}>✦</span>
-        North Star
+        <span>NORTH</span><span style={{ color: '#8e8e93' }}> STAR</span>
       </div>
 
       {/* Center tab nav */}
