@@ -105,7 +105,7 @@ Respond ONLY with valid JSON. No preamble, no backticks.
   "dimensions": {
     ${dimKeys.map(k => `"${k}": { "score": <1-10>, "reasoning": "<one sentence>" }`).join(',\n    ')}
   },
-  "summary": "<2-3 sentence overall fit summary — do NOT include a numeric score>"
+  "summary": "<2-3 sentence overall fit summary — do NOT include a numeric score. Write at a Gunning Fog Index of 7: short sentences (under 18 words), plain words, avoid jargon and polysyllabic words.>"
 }`
 
   const userPrompt = `Job title: ${job.title}\n\nJob description:\n${job.description || '(no description provided)'}`
