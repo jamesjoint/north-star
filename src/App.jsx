@@ -226,7 +226,7 @@ export default function App() {
                     color: '#999', textAlign: 'center', marginTop: 60,
                     fontSize: 14, padding: '0 24px', lineHeight: 1.6,
                   }}>
-                    hey {firstName || 'you'}, you're a superstar and someday you won't need this
+                    hey {firstName ? firstName.toLowerCase() : 'you'}, you're a superstar and someday you won't need this
                   </p>
                 )}
                 {jobs.map(job => (
