@@ -312,6 +312,31 @@ export async function seedAdminProfile(pool, userId, { background, weights }) {
   )
 }
 
+// ── App version ────────────────────────────────────────────────────────────────
+
+export async function upsertAppVersion(pool, sha) {
+  await pool.query(
+    `INSERT INTO app_version (id, sha, updated_at)
+     VALUES (1, $1, now())
+     ON CONFLICT (id) DO UPDATE SET sha = $1, updated_at = now()`,
+    [sha]
+  )
+}
+
+export async function getAppVersion(pool) {
+  const { rows } = await pool.query('SELECT sha, whats_new FROM app_version WHERE id = 1')
+  return rows[0] || { sha: 'unknown', whats_new: null }
+}
+
+export async function patchAppVersionWhatsNew(pool, whatsNew) {
+  await pool.query(
+    `INSERT INTO app_version (id, sha, whats_new, updated_at)
+     VALUES (1, 'unknown', $1, now())
+     ON CONFLICT (id) DO UPDATE SET whats_new = $1, updated_at = now()`,
+    [whatsNew]
+  )
+}
+
 function toDateStr(val) {
   if (!val) return val
   if (typeof val === 'string') return val.slice(0, 10)
