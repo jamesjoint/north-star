@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useJobs } from './hooks/useJobs.js'
 import { useBoards } from './hooks/useBoards.js'
-import { fetchProfile } from './api.js'
+import { fetchProfile, fetchVersion } from './api.js'
 import Header from './components/Header.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import JobCard from './components/JobCard.jsx'
@@ -13,6 +13,7 @@ import Settings from './components/Settings.jsx'
 import Profile from './components/Profile.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import ScoreBanner from './components/ScoreBanner.jsx'
+import VersionToast from './components/VersionToast.jsx'
 
 export default function App() {
   const { user, firstName } = useAuth()
@@ -53,6 +54,8 @@ export default function App() {
     if (!ts) return false
     return Date.now() - Number(ts) < 7 * 24 * 60 * 60 * 1000
   })
+  const [versionToast, setVersionToast] = useState(null) // { whats_new: string|null } when visible
+  const loadedShaRef = useRef(null)
 
   const selectedJob = allJobs.find(j => j.id === selectedId) || null
   const sources = [...new Set(allJobs.map(j => j.source))].sort()
@@ -74,6 +77,31 @@ export default function App() {
     if (!user) return
     fetchProfile().then(p => setTargetLevel(p?.target_level || null)).catch(() => setTargetLevel(null))
   }, [user])
+
+  // SHA-based version polling
+  useEffect(() => {
+    let interval
+    fetchVersion()
+      .then(({ sha, whats_new }) => {
+        loadedShaRef.current = sha
+        const dismissed = localStorage.getItem('northstar_version_dismissed')
+        if (dismissed === sha) return
+      })
+      .catch(() => {})
+
+    interval = setInterval(() => {
+      fetchVersion()
+        .then(({ sha, whats_new }) => {
+          if (!loadedShaRef.current || sha === loadedShaRef.current) return
+          const dismissed = localStorage.getItem('northstar_version_dismissed')
+          if (dismissed === sha) return
+          setVersionToast({ whats_new })
+        })
+        .catch(() => {})
+    }, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   function handleSelect(id) {
     setSelectedId(prev => prev === id ? null : id)
@@ -309,6 +337,18 @@ export default function App() {
           </div>
         )}
       </div>
+      {versionToast && (
+        <VersionToast
+          whatsNew={versionToast.whats_new}
+          onReload={() => window.location.reload()}
+          onDismiss={() => {
+            fetchVersion()
+              .then(({ sha }) => localStorage.setItem('northstar_version_dismissed', sha))
+              .catch(() => {})
+            setVersionToast(null)
+          }}
+        />
+      )}
     </div>
   )
 }
