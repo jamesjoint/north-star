@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { useJobs } from './hooks/useJobs.js'
 import { useBoards } from './hooks/useBoards.js'
+import { fetchProfile } from './api.js'
 import Header from './components/Header.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import JobCard from './components/JobCard.jsx'
@@ -46,6 +47,12 @@ export default function App() {
 
   const [selectedId, setSelectedId] = useState(null)
   const [passingId, setPassingId] = useState(null)
+  const [targetLevel, setTargetLevel] = useState(undefined) // undefined = not yet loaded
+  const [levelBannerDismissed, setLevelBannerDismissed] = useState(() => {
+    const ts = localStorage.getItem('northstar_level_banner_dismissed')
+    if (!ts) return false
+    return Date.now() - Number(ts) < 7 * 24 * 60 * 60 * 1000
+  })
 
   const selectedJob = allJobs.find(j => j.id === selectedId) || null
   const sources = [...new Set(allJobs.map(j => j.source))].sort()
@@ -61,6 +68,12 @@ export default function App() {
       setSelectedId(jobs[0].id)
     }
   }, [tab, selectedId, jobs]) // eslint-disable-line
+
+  // Load target_level from profile
+  useEffect(() => {
+    if (!user) return
+    fetchProfile().then(p => setTargetLevel(p?.target_level || null)).catch(() => setTargetLevel(null))
+  }, [user])
 
   function handleSelect(id) {
     setSelectedId(prev => prev === id ? null : id)
@@ -184,6 +197,38 @@ export default function App() {
         {tab === 'search' && (
           <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
             <FilterBar sources={sources} sourceCounts={sourceCounts} filters={filters} onChange={setFilters} />
+            {targetLevel !== undefined && !targetLevel?.length && !levelBannerDismissed && (
+              <div style={{
+                background: 'rgba(220,0,255,0.05)',
+                borderBottom: '0.5px solid rgba(220,0,255,0.15)',
+                padding: '9px 20px',
+                display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <span style={{ flex: 1, fontSize: 13, color: '#666' }}>
+                  ✦ Add your target level to get better-matched roles
+                </span>
+                <button
+                  onClick={() => setTab('profile')}
+                  style={{
+                    fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontFamily: 'var(--font)', padding: 0,
+                  }}
+                >
+                  Set level →
+                </button>
+                <button
+                  onClick={() => {
+                    setLevelBannerDismissed(true)
+                    localStorage.setItem('northstar_level_banner_dismissed', String(Date.now()))
+                  }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#bbb', fontSize: 16, padding: '0 4px', lineHeight: 1,
+                  }}
+                >×</button>
+              </div>
+            )}
             <ScoreBanner onDone={reloadJobs} />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
