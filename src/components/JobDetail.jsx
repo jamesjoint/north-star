@@ -146,6 +146,52 @@ export default function JobDetail({ job, onAddToConstellation, onNotApplying }) 
 
       </div>
 
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+        {onAddToConstellation && (
+          <button
+            onClick={() => onAddToConstellation(job.id)}
+            style={{
+              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
+              padding: '8px 16px', border: 'none',
+              background: '#1a1a1a', color: '#fff',
+              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
+            }}
+          >
+            Add to Constellation
+          </button>
+        )}
+        {job.url && (
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
+              padding: '8px 16px', border: '0.5px solid rgba(0,0,0,0.2)',
+              background: 'transparent', color: '#1a1a1a',
+              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
+              textDecoration: 'none', display: 'inline-block',
+            }}
+          >
+            View posting
+          </a>
+        )}
+        {onNotApplying && (
+          <button
+            onClick={() => onNotApplying(job.id)}
+            style={{
+              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
+              padding: '8px 16px', border: '0.5px solid rgba(0,0,0,0.2)',
+              background: 'transparent', color: '#1a1a1a',
+              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
+            }}
+          >
+            Not Applying
+          </button>
+        )}
+      </div>
+
       {/* Verdict */}
       {verdict && (
         <div style={{
@@ -210,52 +256,6 @@ export default function JobDetail({ job, onAddToConstellation, onNotApplying }) 
         </>
       )}
 
-      {/* Action buttons */}
-      <div style={{ height: '0.5px', background: 'rgba(0,0,0,0.08)', margin: '18px 0' }} />
-      <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
-        {onAddToConstellation && (
-          <button
-            onClick={() => onAddToConstellation(job.id)}
-            style={{
-              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
-              padding: '8px 16px', border: 'none',
-              background: '#1a1a1a', color: '#fff',
-              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
-            }}
-          >
-            Add to Constellation
-          </button>
-        )}
-        {job.url && (
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
-              padding: '8px 16px', border: '0.5px solid rgba(0,0,0,0.2)',
-              background: 'transparent', color: '#1a1a1a',
-              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
-              textDecoration: 'none', display: 'inline-block',
-            }}
-          >
-            View posting
-          </a>
-        )}
-        {onNotApplying && (
-          <button
-            onClick={() => onNotApplying(job.id)}
-            style={{
-              fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase',
-              padding: '8px 16px', border: '0.5px solid rgba(0,0,0,0.2)',
-              background: 'transparent', color: '#1a1a1a',
-              cursor: 'pointer', borderRadius: 8, fontFamily: 'var(--font)',
-            }}
-          >
-            Not Applying
-          </button>
-        )}
-      </div>
     </div>
   )
 }
