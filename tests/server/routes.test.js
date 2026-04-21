@@ -965,3 +965,13 @@ describe('multi-user isolation', () => {
     expect(boardsA.body.find(b => b.id === boardId)?.name).toBe('User A Private Board')
   })
 })
+
+describe('GET /api/version', () => {
+  test('returns sha and whats_new', async () => {
+    const app = createApp(pool)
+    const res = await request(app).get('/api/version')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('sha')
+    expect(res.body).toHaveProperty('whats_new')
+  })
+})

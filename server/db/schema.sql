@@ -202,6 +202,13 @@ CREATE TABLE IF NOT EXISTS app_invites (
   created_at        timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS app_version (
+  id         integer PRIMARY KEY DEFAULT 1,
+  sha        text    NOT NULL DEFAULT 'unknown',
+  whats_new  text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Performance indexes
 -- Partial index so "WHERE deleted = false" scans only live jobs
 CREATE INDEX IF NOT EXISTS idx_jobs_live ON jobs(fetched_at DESC) WHERE deleted = false;
