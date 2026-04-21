@@ -275,6 +275,33 @@ export async function upsertProfileName(pool, userId, firstName, lastName) {
   )
 }
 
+export async function upsertProfileTargetLevel(pool, userId, targetLevel) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, target_level, updated_at)
+     VALUES ($1, $2, now())
+     ON CONFLICT (user_id) DO UPDATE SET target_level = $2, updated_at = now()`,
+    [userId, targetLevel]
+  )
+}
+
+export async function upsertProfileTargets(pool, userId, targetRoles, targetSectors) {
+  await pool.query(
+    `INSERT INTO profiles (user_id, target_roles, target_sectors, updated_at)
+     VALUES ($1, $2, $3, now())
+     ON CONFLICT (user_id) DO UPDATE SET target_roles = $2, target_sectors = $3, updated_at = now()`,
+    [userId, targetRoles || null, targetSectors || null]
+  )
+}
+
+export async function incrementProfileVersion(pool, userId) {
+  await pool.query(
+    `UPDATE profiles
+     SET profile_version = COALESCE(profile_version, 1) + 1, updated_at = now()
+     WHERE user_id = $1`,
+    [userId]
+  )
+}
+
 export async function seedAdminProfile(pool, userId, { background, weights }) {
   await pool.query(
     `INSERT INTO profiles (user_id, background, weights, onboarding_done, updated_at)
