@@ -67,28 +67,27 @@ export default function JobCard({ job, onSelect, selected, onStatusChange, onDel
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 13, fontWeight: 500, color: '#1a1a1a',
-            lineHeight: 1.3, marginBottom: 3,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3,
           }}>
-            {job.title}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
             <span style={{
-              fontSize: 11, color: '#999',
+              fontSize: 13, fontWeight: 500, color: '#1a1a1a',
+              lineHeight: 1.3,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {metaParts.join(' · ')}
+              {job.title}
             </span>
             {compactStatusStyle && (
-              <span style={{
-                fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
-                padding: '1px 5px', borderRadius: 4, flexShrink: 0,
-                background: compactStatusStyle.bg, color: compactStatusStyle.color,
-              }}>
-                {compactStatus.toUpperCase()}
-              </span>
+              <span title={compactStatus} style={{
+                flexShrink: 0, width: 6, height: 6, borderRadius: '50%',
+                background: compactStatusStyle.color,
+              }} />
             )}
+          </div>
+          <div style={{
+            fontSize: 11, color: '#999',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {metaParts.join(' · ')}
           </div>
         </div>
       </div>
