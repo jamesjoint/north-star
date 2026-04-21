@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext.jsx'
-import { patchBackground, fetchProfile, patchWeights, patchPersonality, createBoardApi, patchName } from '../api.js'
+import { patchBackground, fetchProfile, patchWeights, patchPersonality, createBoardApi, patchName, patchTargetLevel, patchTargets } from '../api.js'
 
 const PROMPTS = [
   { key: 'background',   label: "What's your professional background in 2–3 sentences?" },
@@ -13,7 +13,16 @@ const MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','IST
 const DISC_STYLES = ['Dominance (D)','Influence (I)','Steadiness (S)','Conscientiousness (C)']
 const ZODIAC = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
 
-const STEPS = ['name', 'background', 'generating', 'personality', 'review', 'board']
+const STEPS = ['name', 'background', 'level', 'generating', 'personality', 'review', 'board']
+
+const LEVEL_OPTIONS = [
+  'IC / Individual Contributor',
+  'Senior IC',
+  'Manager',
+  'Senior Manager / Director',
+  'VP / Head of',
+  'C-Suite / Executive',
+]
 
 // ── Step 0: Name form ─────────────────────────────────────────────────────────
 
@@ -105,10 +114,9 @@ function BackgroundStep({ onNext }) {
         `What energizes me: ${answers.energizes.trim()}`,
         `What I want next: ${answers.next_role.trim()}`,
         answers.dealbreakers?.trim() ? `Deal-breakers: ${answers.dealbreakers.trim()}` : null,
-        `Target roles: ${targetRoles.trim()}`,
-        `Target sectors: ${targetSectors.trim()}`,
       ].filter(Boolean).join('\n\n')
       await patchBackground(background)
+      await patchTargets(targetRoles.trim(), targetSectors.trim())
       onNext()
     } catch (err) {
       setError(err.message || 'Something went wrong. Try again.')
@@ -153,7 +161,83 @@ function BackgroundStep({ onNext }) {
   )
 }
 
-// ── Step 2: Generating dimensions ─────────────────────────────────────────────
+// ── Step 2: Level targeting ───────────────────────────────────────────────────
+
+function LevelStep({ onNext }) {
+  const [selected, setSelected] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function toggle(level) {
+    setSelected(prev =>
+      prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]
+    )
+  }
+
+  async function handleSubmit() {
+    if (!selected.length) return
+    setSaving(true)
+    setError('')
+    try {
+      await patchTargetLevel(selected)
+      onNext()
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+        What level are you targeting?
+      </h1>
+      <p style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 24, lineHeight: 1.5 }}>
+        Select all that apply — this shapes which roles get surfaced on your Radar.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+        {LEVEL_OPTIONS.map(level => {
+          const isSelected = selected.includes(level)
+          return (
+            <button
+              key={level}
+              type="button"
+              onClick={() => toggle(level)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                border: isSelected ? '1.5px solid var(--blue)' : '1px solid rgba(0,0,0,0.15)',
+                background: isSelected ? 'rgba(48,197,255,0.08)' : '#fff',
+                fontFamily: 'var(--font)', fontSize: 15, color: 'var(--text)',
+                textAlign: 'left', transition: 'all 0.15s',
+              }}
+            >
+              <span style={{
+                width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                border: isSelected ? '2px solid var(--blue)' : '2px solid rgba(0,0,0,0.2)',
+                background: isSelected ? 'var(--blue)' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {isSelected && <span style={{ color: '#fff', fontSize: 11, lineHeight: 1 }}>✓</span>}
+              </span>
+              {level}
+            </button>
+          )
+        })}
+      </div>
+      {error && <p style={{ color: 'var(--score-lo)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      <button
+        onClick={handleSubmit}
+        disabled={!selected.length || saving}
+        style={primaryBtn(selected.length > 0 && !saving)}
+      >
+        {saving ? 'Saving…' : 'Continue'}
+      </button>
+    </>
+  )
+}
+
+// ── Step 3: Generating dimensions ─────────────────────────────────────────────
 
 function GeneratingStep({ onNext }) {
   const pollRef = useRef(null)
@@ -529,8 +613,9 @@ export default function Onboarding({ onComplete }) {
           <NameStep onNext={handleNameDone} />
         )}
         {step === 'background' && (
-          <BackgroundStep onNext={() => setStep('generating')} />
+          <BackgroundStep onNext={() => setStep('level')} />
         )}
+        {step === 'level' && <LevelStep onNext={() => setStep('generating')} />}
         {step === 'generating' && (
           <GeneratingStep onNext={handleGeneratingDone} />
         )}
