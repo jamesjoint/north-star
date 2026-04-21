@@ -307,3 +307,9 @@ export async function fetchRescoreStatus() {
   if (!res.ok) throw new Error(`Failed to fetch rescore status: ${res.status}`)
   return res.json()
 }
+
+export async function fetchVersion() {
+  const res = await fetch('/api/version')
+  if (!res.ok) throw new Error(`Failed to fetch version: ${res.status}`)
+  return res.json()
+}
