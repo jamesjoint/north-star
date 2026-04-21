@@ -71,7 +71,7 @@ describe('sendApprovalEmail', () => {
     const { sendApprovalEmail } = await import('../../server/email.js?t=' + Date.now())
     await sendApprovalEmail({ to: 'approved@example.com' })
     const call = mockEmailsSend.mock.calls[0][0]
-    expect(call.subject).toMatch(/in|approved/i)
+    expect(call.subject).toMatch(/door is open/i)
   })
 })
 

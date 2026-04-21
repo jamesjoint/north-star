@@ -207,7 +207,7 @@ describe('generateAndSaveDimensions', () => {
   test('calls generateDimensions with the background text', async () => {
     const pool = { query: vi.fn() }
     await generateAndSaveDimensionsFn(pool, 'user1', 'My background text')
-    expect(generateDimensions).toHaveBeenCalledWith('My background text')
+    expect(generateDimensions).toHaveBeenCalledWith('My background text', expect.any(Object))
   })
 
   test('calls upsertProfileDimensions with generated dimensions', async () => {
