@@ -6,23 +6,20 @@ vi.mock('@anthropic-ai/sdk')
 const MOCK_PROFILE = {
   background: 'Experienced product leader with BD background in regulated industries.',
   weights: {
-    core_mechanism: 1, product_depth: 1, regulated_complexity: 1,
-    bd_track_record: 1, mba_preference: 1, domain_gap: 1, gap_bridgeability: 1
+    role_alignment: 1, level_fit: 1, sector_fit: 1, skills_match: 1, growth_potential: 1
   }
 }
 
 const MOCK_SCORE_RESPONSE = {
   dimensions: {
-    core_mechanism: { score: 8, reasoning: 'Role needs cross-functional influence.' },
-    product_depth: { score: 7, reasoning: 'Owns a product line.' },
-    regulated_complexity: { score: 9, reasoning: 'Fintech is highly regulated.' },
-    bd_track_record: { score: 6, reasoning: 'Deal-closing mentioned.' },
-    mba_preference: { score: 5, reasoning: 'MBA preferred but not required.' },
-    domain_gap: { score: 4, reasoning: 'No crypto background.' },
-    gap_bridgeability: { score: 7, reasoning: 'Crypto is learnable from fintech base.' },
+    role_alignment:   { score: 8, reasoning: 'Title aligns well with target.' },
+    level_fit:        { score: 7, reasoning: 'One level above target.' },
+    sector_fit:       { score: 9, reasoning: 'Fintech matches target sector.' },
+    skills_match:     { score: 6, reasoning: 'Meets most requirements.' },
+    growth_potential: { score: 5, reasoning: 'Some growth opportunity.' },
   },
   aggregate: 999,
-  summary: 'Strong fit on influence and regulated complexity. Domain gap in crypto is bridgeable.'
+  summary: 'Strong fit on role and sector. Some growth headroom available.'
 }
 
 describe('scoreJob', () => {
@@ -45,9 +42,9 @@ describe('scoreJob', () => {
       { title: 'PM', description: 'Lead product at a crypto startup.' },
       MOCK_PROFILE
     )
-    expect(result.dimensions.core_mechanism.score).toBe(8)
-    expect(result.aggregate).toBeCloseTo(6.57, 2)
-    expect(result.summary).toContain('influence')
+    expect(result.dimensions.role_alignment.score).toBe(8)
+    expect(result.aggregate).toBeCloseTo(7, 2)
+    expect(result.summary).toContain('Strong fit')
   })
 
   test('strips markdown code fences before parsing', async () => {
@@ -62,7 +59,7 @@ describe('scoreJob', () => {
     })
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
-    expect(result.dimensions.core_mechanism.score).toBe(8)
+    expect(result.dimensions.role_alignment.score).toBe(8)
   })
 
   test('strips fences when Claude adds preamble text before the fence', async () => {
@@ -78,7 +75,7 @@ describe('scoreJob', () => {
     })
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
-    expect(result.dimensions.core_mechanism.score).toBe(8)
+    expect(result.dimensions.role_alignment.score).toBe(8)
   })
 
   test('handles plain JSON response with no fences', async () => {
@@ -93,14 +90,13 @@ describe('scoreJob', () => {
     })
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
-    expect(result.dimensions.core_mechanism.score).toBe(8)
+    expect(result.dimensions.role_alignment.score).toBe(8)
   })
 
   test('recalculates aggregate using profile weights', async () => {
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const heavyWeights = { ...MOCK_PROFILE, weights: {
-      core_mechanism: 2, product_depth: 1, regulated_complexity: 1,
-      bd_track_record: 1, mba_preference: 1, domain_gap: 1, gap_bridgeability: 1
+      role_alignment: 2, level_fit: 1, sector_fit: 1, skills_match: 1, growth_potential: 1
     }}
     const result = await scoreJob(
       { title: 'PM', description: 'desc' },
@@ -108,18 +104,51 @@ describe('scoreJob', () => {
     )
     const dims = MOCK_SCORE_RESPONSE.dimensions
     const expected = (
-      dims.core_mechanism.score * 2 +
-      dims.product_depth.score * 1 +
-      dims.regulated_complexity.score * 1 +
-      dims.bd_track_record.score * 1 +
-      dims.mba_preference.score * 1 +
-      dims.domain_gap.score * 1 +
-      dims.gap_bridgeability.score * 1
-    ) / 8
+      dims.role_alignment.score * 2 +
+      dims.level_fit.score * 1 +
+      dims.sector_fit.score * 1 +
+      dims.skills_match.score * 1 +
+      dims.growth_potential.score * 1
+    ) / 6
     expect(result.aggregate).toBeCloseTo(expected, 2)
   })
 })
 // APPENDED TESTS
+
+describe('scoreJob — generic DEFAULT_DIMENSIONS', () => {
+  test('generic DEFAULT_DIMENSIONS: system prompt uses role_alignment and level_fit, not Ashley-specific keys', async () => {
+    vi.clearAllMocks()
+    let capturedSystemPrompt
+    const genericDimResponse = {
+      dimensions: {
+        role_alignment:   { score: 8, reasoning: 'Title matches target.' },
+        level_fit:        { score: 7, reasoning: 'One level above target.' },
+        sector_fit:       { score: 6, reasoning: 'Adjacent sector.' },
+        skills_match:     { score: 9, reasoning: 'Meets most requirements.' },
+        growth_potential: { score: 7, reasoning: 'Clear growth path.' },
+      },
+      summary: 'Strong overall fit with good growth potential.'
+    }
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async (opts) => {
+            capturedSystemPrompt = opts.system
+            return { content: [{ text: JSON.stringify(genericDimResponse) }] }
+          })
+        }
+      }
+    })
+    // Profile with no custom dimensions — forces fallback to DEFAULT_DIMENSIONS
+    const profile = { background: 'Software engineer with 5 years experience.', weights: {} }
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await scoreJob({ title: 'Senior Engineer', description: 'Build great things.' }, profile)
+    expect(capturedSystemPrompt).toContain('role_alignment')
+    expect(capturedSystemPrompt).toContain('level_fit')
+    expect(capturedSystemPrompt).not.toContain('core_mechanism')
+    expect(capturedSystemPrompt).not.toContain('mba_preference')
+  })
+})
 
 describe('scoreJob — additional edge cases', () => {
   beforeEach(() => {
@@ -138,9 +167,9 @@ describe('scoreJob — additional edge cases', () => {
   test('enriches dimension objects with their label from dimension definitions', async () => {
     const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
     const result = await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
-    // Default dimensions map core_mechanism → label: 'Connector Fit'
-    expect(result.dimensions.core_mechanism.label).toBe('Connector Fit')
-    expect(result.dimensions.domain_gap.label).toBe('Domain Fit')
+    // Default dimensions map role_alignment → label: 'Role Alignment'
+    expect(result.dimensions.role_alignment.label).toBe('Role Alignment')
+    expect(result.dimensions.sector_fit.label).toBe('Sector Fit')
   })
 
   test('uses custom dimensions from profile when 3+ keys are present', async () => {
