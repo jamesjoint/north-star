@@ -19,6 +19,7 @@ import {
   getBoards, createBoard, updateBoard, deleteBoard, getOrCreateDefaultBoard,
   getProfile, upsertProfileWeights, upsertProfileBackground, upsertProfilePersonality,
   upsertProfileDimensions, seedAdminProfile, upsertProfileName,
+  upsertProfileTargetLevel, upsertProfileTargets, incrementProfileVersion,
 } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -311,6 +312,26 @@ export function createApp(pool, pipeline = null) {
         .then(() => rescoreAllJobs(pool, req.user.id))
         .catch(err => console.error('[POST /api/profile/dimensions/regenerate] failed:', err.message))
     }).catch(err => console.error('[POST /api/profile/dimensions/regenerate] import failed:', err.message))
+  })
+
+  app.patch('/api/profile/target-level', async (req, res) => {
+    const { target_level } = req.body
+    if (!Array.isArray(target_level) || target_level.length === 0) {
+      return res.status(400).json({ error: 'target_level must be a non-empty array' })
+    }
+    await upsertProfileTargetLevel(pool, req.user.id, target_level)
+    res.json({ ok: true })
+  })
+
+  app.patch('/api/profile/targets', async (req, res) => {
+    const { target_roles, target_sectors } = req.body
+    await upsertProfileTargets(pool, req.user.id, target_roles, target_sectors)
+    res.json({ ok: true })
+  })
+
+  app.post('/api/profile/increment-version', async (req, res) => {
+    await incrementProfileVersion(pool, req.user.id)
+    res.json({ ok: true })
   })
 
   app.patch('/api/profile/background', async (req, res) => {

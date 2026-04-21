@@ -815,6 +815,73 @@ describe('new profile structured fields', () => {
   })
 })
 
+describe('PATCH /api/profile/target-level', () => {
+  test('saves target level array and is retrievable via GET /api/profile', async () => {
+    const app = createApp(pool)
+    const patch = await request(app)
+      .patch('/api/profile/target-level')
+      .set('Cookie', sessionCookie)
+      .send({ target_level: ['Senior IC', 'Manager'] })
+    expect(patch.status).toBe(200)
+    expect(patch.body.ok).toBe(true)
+
+    const get = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(get.body.target_level).toEqual(['Senior IC', 'Manager'])
+  })
+
+  test('rejects empty array with 400', async () => {
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/profile/target-level')
+      .set('Cookie', sessionCookie)
+      .send({ target_level: [] })
+    expect(res.status).toBe(400)
+  })
+
+  test('rejects non-array with 400', async () => {
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/profile/target-level')
+      .set('Cookie', sessionCookie)
+      .send({ target_level: 'Senior IC' })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('PATCH /api/profile/targets', () => {
+  test('saves target_roles and target_sectors', async () => {
+    const app = createApp(pool)
+    const patch = await request(app)
+      .patch('/api/profile/targets')
+      .set('Cookie', sessionCookie)
+      .send({ target_roles: 'Head of Partnerships', target_sectors: 'creator economy' })
+    expect(patch.status).toBe(200)
+
+    const get = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(get.body.target_roles).toBe('Head of Partnerships')
+    expect(get.body.target_sectors).toBe('creator economy')
+  })
+})
+
+describe('POST /api/profile/increment-version', () => {
+  test('increments profile_version', async () => {
+    const app = createApp(pool)
+    // Ensure a profile row exists first
+    await request(app)
+      .patch('/api/profile/target-level')
+      .set('Cookie', sessionCookie)
+      .send({ target_level: ['IC / Individual Contributor'] })
+
+    const before = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    const vBefore = before.body.profile_version
+
+    await request(app).post('/api/profile/increment-version').set('Cookie', sessionCookie)
+
+    const after = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(after.body.profile_version).toBe(vBefore + 1)
+  })
+})
+
 describe('multi-user isolation', () => {
   let userBCookie
 
