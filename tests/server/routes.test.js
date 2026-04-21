@@ -803,6 +803,18 @@ describe('PATCH /api/profile/weights (custom dim keys)', () => {
   })
 })
 
+describe('new profile structured fields', () => {
+  test('GET /api/profile returns target_level null for new user', async () => {
+    const app = createApp(pool)
+    const res = await request(app).get('/api/profile').set('Cookie', sessionCookie)
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('target_level')
+    expect(res.body).toHaveProperty('target_roles')
+    expect(res.body).toHaveProperty('target_sectors')
+    expect(res.body).toHaveProperty('profile_version')
+  })
+})
+
 describe('multi-user isolation', () => {
   let userBCookie
 

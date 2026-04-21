@@ -212,6 +212,10 @@ export function createApp(pool, pipeline = null) {
         personality: dbProfile.personality || null,
         first_name: dbProfile.first_name || null,
         last_name: dbProfile.last_name || null,
+        target_level: dbProfile.target_level || null,
+        target_roles: dbProfile.target_roles || null,
+        target_sectors: dbProfile.target_sectors || null,
+        profile_version: dbProfile.profile_version || 1,
       })
     }
     // Admin only: fall back to profile.json if DB profile not seeded yet
@@ -222,7 +226,7 @@ export function createApp(pool, pipeline = null) {
       } catch { /* fall through */ }
     }
     // New user with no profile yet — send them through onboarding
-    res.json({ weights: {}, background: '', onboarding_done: false, dimensions: null, personality: null, first_name: null, last_name: null })
+    res.json({ weights: {}, background: '', onboarding_done: false, dimensions: null, personality: null, first_name: null, last_name: null, target_level: null, target_roles: null, target_sectors: null, profile_version: 1 })
   })
 
   app.patch('/api/profile/weights', async (req, res) => {

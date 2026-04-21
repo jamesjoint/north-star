@@ -154,6 +154,46 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Idempotently add target_level column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'target_level'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN target_level text[];
+  END IF;
+END $$;
+
+-- Idempotently add target_roles column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'target_roles'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN target_roles text;
+  END IF;
+END $$;
+
+-- Idempotently add target_sectors column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'target_sectors'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN target_sectors text;
+  END IF;
+END $$;
+
+-- Idempotently add profile_version column to profiles
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'profiles' AND column_name = 'profile_version'
+  ) THEN
+    ALTER TABLE profiles ADD COLUMN profile_version integer NOT NULL DEFAULT 1;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS app_invites (
   code              text        NOT NULL PRIMARY KEY,
   created_by        text        NOT NULL REFERENCES "user"("id"),
