@@ -109,3 +109,47 @@ describe('generateDimensions', () => {
     expect(result.bd_influence).toHaveProperty('weight')
   })
 })
+
+describe('personality and targets in dimension generation', () => {
+  test('includes personality and targets in user message when provided', async () => {
+    let capturedMsg = ''
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async ({ messages }) => {
+            capturedMsg = messages[0].content
+            return { content: [{ text: JSON.stringify({ dimensions: { role_fit: { label: 'Role Fit', description: 'desc', weight: 1 } } }) }] }
+          })
+        }
+      }
+    })
+    const { generateDimensions } = await import('../../server/dimension-generator.js?t=' + Date.now())
+    await generateDimensions('Product manager background.', {
+      personality: { mbti: 'INTJ', disc: 'Dominance (D)', strengths: ['Strategic', 'Activator'] },
+      target_level: ['Senior IC'],
+      target_roles: 'Head of Product',
+      target_sectors: 'creator economy',
+    })
+    expect(capturedMsg).toContain('Myers-Briggs: INTJ')
+    expect(capturedMsg).toContain('DiSC: Dominance (D)')
+    expect(capturedMsg).toContain('CliftonStrengths top 5: Strategic, Activator')
+    expect(capturedMsg).toContain('Target level: Senior IC')
+    expect(capturedMsg).toContain('Target roles: Head of Product')
+    expect(capturedMsg).toContain('Target sectors: creator economy')
+  })
+
+  test('works with no profile context — backward compatible', async () => {
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockResolvedValue({
+            content: [{ text: JSON.stringify({ dimensions: { role_fit: { label: 'Role Fit', description: 'desc', weight: 1 } } }) }]
+          })
+        }
+      }
+    })
+    const { generateDimensions } = await import('../../server/dimension-generator.js?t=' + Date.now())
+    const result = await generateDimensions('Some background.')
+    expect(result.role_fit).toBeDefined()
+  })
+})

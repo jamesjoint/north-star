@@ -38,6 +38,9 @@ async function loadProfile(pool, userId) {
         weights: dbProfile.weights || {},
         dimensions: dbProfile.dimensions || null,
         personality: dbProfile.personality || null,
+        target_level: dbProfile.target_level || null,
+        target_roles: dbProfile.target_roles || null,
+        target_sectors: dbProfile.target_sectors || null,
       }
     }
   }
@@ -48,8 +51,9 @@ async function loadProfile(pool, userId) {
 export async function generateAndSaveDimensions(pool, userId, background) {
   try {
     const { generateDimensions } = await import('./dimension-generator.js')
+    const dbProfile = await getProfile(pool, userId)
     console.log(`[dimensions] Generating dimensions for user ${userId}...`)
-    const dimensions = await generateDimensions(background)
+    const dimensions = await generateDimensions(background, dbProfile || {})
     await upsertProfileDimensions(pool, userId, dimensions)
     console.log(`[dimensions] Saved ${Object.keys(dimensions).length} dimensions for user ${userId}`)
   } catch (err) {
