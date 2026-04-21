@@ -295,9 +295,10 @@ export async function upsertProfileTargets(pool, userId, targetRoles, targetSect
 
 export async function incrementProfileVersion(pool, userId) {
   await pool.query(
-    `UPDATE profiles
-     SET profile_version = COALESCE(profile_version, 1) + 1, updated_at = now()
-     WHERE user_id = $1`,
+    `INSERT INTO profiles (user_id, profile_version, updated_at)
+     VALUES ($1, 2, now())
+     ON CONFLICT (user_id) DO UPDATE
+       SET profile_version = COALESCE(profiles.profile_version, 1) + 1, updated_at = now()`,
     [userId]
   )
 }
