@@ -223,6 +223,53 @@ describe('scoreJob — additional edge cases', () => {
   })
 })
 
+describe('targets context block in system prompt', () => {
+  test('includes Candidate targets section when target fields are set', async () => {
+    let capturedSystem = ''
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async ({ system }) => {
+            capturedSystem = system
+            return { content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }] }
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await scoreJob(
+      { title: 'PM', description: 'desc' },
+      {
+        ...MOCK_PROFILE,
+        target_level: ['Senior IC', 'Manager'],
+        target_roles: 'Head of Partnerships',
+        target_sectors: 'creator economy',
+      }
+    )
+    expect(capturedSystem).toContain('Candidate targets:')
+    expect(capturedSystem).toContain('- Level: Senior IC, Manager')
+    expect(capturedSystem).toContain('- Roles: Head of Partnerships')
+    expect(capturedSystem).toContain('- Sectors: creator economy')
+  })
+
+  test('omits Candidate targets section when no target fields set', async () => {
+    let capturedSystem = ''
+    Anthropic.mockImplementation(function() {
+      return {
+        messages: {
+          create: vi.fn().mockImplementation(async ({ system }) => {
+            capturedSystem = system
+            return { content: [{ text: JSON.stringify(MOCK_SCORE_RESPONSE) }] }
+          })
+        }
+      }
+    })
+    const { scoreJob } = await import('../../server/scorer.js?t=' + Date.now())
+    await scoreJob({ title: 'PM', description: 'desc' }, MOCK_PROFILE)
+    expect(capturedSystem).not.toContain('Candidate targets:')
+  })
+})
+
 describe('scoreJob — error handling and personality', () => {
   beforeEach(() => {
     vi.clearAllMocks()

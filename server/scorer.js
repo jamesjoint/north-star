@@ -82,11 +82,20 @@ export async function scoreJob(job, profile) {
 
   const personalityBlock = buildPersonalityBlock(profile.personality)
 
+  const targetsLines = [
+    profile.target_level?.length ? `Level: ${profile.target_level.join(', ')}` : null,
+    profile.target_roles ? `Roles: ${profile.target_roles}` : null,
+    profile.target_sectors ? `Sectors: ${profile.target_sectors}` : null,
+  ].filter(Boolean)
+  const targetsSection = targetsLines.length > 0
+    ? `\nCandidate targets:\n${targetsLines.map(l => `- ${l}`).join('\n')}\n`
+    : ''
+
   const systemPrompt = `You are a job-fit evaluator. Assess the job listing against the candidate profile using exactly ${dimKeys.length} dimensions.
 
 Candidate background:
 ${profile.background}
-${personalityBlock ? `\nPersonality context:\n${personalityBlock}\n` : ''}
+${personalityBlock ? `\nPersonality context:\n${personalityBlock}\n` : ''}${targetsSection}
 Dimensions to score (each 1–10):
 ${dimKeys.map(k => `- ${k}: ${dimensions[k].description || dimensions[k]}`).join('\n')}
 
