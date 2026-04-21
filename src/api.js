@@ -260,6 +260,32 @@ export async function patchPersonality(personality) {
   return res.json()
 }
 
+export async function patchTargetLevel(targetLevel) {
+  const res = await apiFetch(`${BASE}/profile/target-level`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_level: targetLevel }),
+  })
+  if (!res.ok) throw new Error(`Failed to save target level: ${res.status}`)
+  return res.json()
+}
+
+export async function patchTargets(targetRoles, targetSectors) {
+  const res = await apiFetch(`${BASE}/profile/targets`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_roles: targetRoles, target_sectors: targetSectors }),
+  })
+  if (!res.ok) throw new Error(`Failed to save targets: ${res.status}`)
+  return res.json()
+}
+
+export async function incrementProfileVersion() {
+  const res = await apiFetch(`${BASE}/profile/increment-version`, { method: 'POST' })
+  if (!res.ok) throw new Error(`Failed to increment profile version: ${res.status}`)
+  return res.json()
+}
+
 export async function patchDimensions(dimensions) {
   const res = await apiFetch(`${BASE}/profile/dimensions`, {
     method: 'PATCH',
