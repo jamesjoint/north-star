@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { fetchProfile, patchBackground, regenerateDimensions, patchPersonality, patchDimensions, patchName } from '../api.js'
+import { fetchProfile, patchBackground, regenerateDimensions, patchPersonality, patchDimensions, patchName, patchTargets, patchTargetLevel, incrementProfileVersion } from '../api.js'
 import { cleanPersonality } from '../utils/personality.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
+import RescoreModal from './RescoreModal.jsx'
+import Onboarding from './Onboarding.jsx'
 
 const MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP']
 const DISC_STYLES = ['Dominance (D)','Influence (I)','Steadiness (S)','Conscientiousness (C)']
@@ -247,6 +249,187 @@ function PersonalitySection({ personality: initial }) {
   )
 }
 
+const LEVEL_OPTIONS = [
+  'IC / Individual Contributor', 'Senior IC', 'Manager',
+  'Senior Manager / Director', 'VP / Head of', 'C-Suite / Executive',
+]
+
+// ── Targets editor ─────────────────────────────────────────────────────────────
+
+function TargetsSection({ profile: profileProp, onSaved }) {
+  const [editing, setEditing] = useState(false)
+  const [showRescoreModal, setShowRescoreModal] = useState(false)
+  const [pendingRoles, setPendingRoles] = useState('')
+  const [pendingSectors, setPendingSectors] = useState('')
+  const [pendingLevel, setPendingLevel] = useState([])
+  const [saving, setSaving] = useState(false)
+
+  const currentLevel = profileProp?.target_level || []
+  const currentRoles = profileProp?.target_roles || []
+  const currentSectors = profileProp?.target_sectors || []
+
+  const hasData = currentLevel.length > 0 || currentRoles.length > 0 || currentSectors.length > 0
+
+  const selectStyle = {
+    padding: '8px 10px', fontSize: 13, border: '1px solid rgba(0,0,0,0.15)',
+    borderRadius: 8, outline: 'none', fontFamily: 'var(--font)',
+    color: 'var(--text)', background: '#fff', flex: 1, maxWidth: 180,
+  }
+  const inputStyle = { ...selectStyle, maxWidth: 'none', width: '100%' }
+  const rowStyle = {
+    display: 'flex', alignItems: 'center', padding: '10px 16px',
+    borderBottom: '0.5px solid rgba(0,0,0,0.08)', gap: 12,
+  }
+  const labelStyle = { fontSize: 13, color: '#8e8e93', minWidth: 120 }
+
+  function startEdit() {
+    setPendingLevel(Array.isArray(currentLevel) ? [...currentLevel] : [])
+    setPendingRoles(Array.isArray(currentRoles) ? currentRoles.join(', ') : (currentRoles || ''))
+    setPendingSectors(Array.isArray(currentSectors) ? currentSectors.join(', ') : (currentSectors || ''))
+    setEditing(true)
+  }
+
+  function toggleLevel(opt) {
+    setPendingLevel(prev =>
+      prev.includes(opt) ? prev.filter(v => v !== opt) : [...prev, opt]
+    )
+  }
+
+  function handleSaveClick() {
+    setEditing(false)
+    setShowRescoreModal(true)
+  }
+
+  async function doSave() {
+    setSaving(true)
+    try {
+      const rolesArr = pendingRoles.split(',').map(s => s.trim()).filter(Boolean)
+      const sectorsArr = pendingSectors.split(',').map(s => s.trim()).filter(Boolean)
+      await patchTargets(rolesArr, sectorsArr)
+      await patchTargetLevel(pendingLevel)
+    } catch { /* ignore */ }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <>
+      <SectionLabel>Targets</SectionLabel>
+      <div style={{ background: '#fff', borderTop: '0.5px solid rgba(0,0,0,0.15)', borderBottom: '0.5px solid rgba(0,0,0,0.15)' }}>
+        {!editing ? (
+          <>
+            {!hasData ? (
+              <div style={{ padding: '14px 16px' }}>
+                <p style={{ fontSize: 13, color: '#8e8e93', margin: '0 0 10px' }}>No targets set yet.</p>
+                <button onClick={startEdit} style={editBtn}>Add</button>
+              </div>
+            ) : (
+              <>
+                {currentLevel.length > 0 && (
+                  <div style={rowStyle}>
+                    <span style={labelStyle}>Level</span>
+                    <span style={{ fontSize: 13, color: 'var(--text)', flex: 1 }}>{currentLevel.join(', ')}</span>
+                  </div>
+                )}
+                {currentRoles.length > 0 && (
+                  <div style={rowStyle}>
+                    <span style={labelStyle}>Roles</span>
+                    <span style={{ fontSize: 13, color: 'var(--text)', flex: 1 }}>{Array.isArray(currentRoles) ? currentRoles.join(', ') : currentRoles}</span>
+                  </div>
+                )}
+                {currentSectors.length > 0 && (
+                  <div style={rowStyle}>
+                    <span style={labelStyle}>Sectors</span>
+                    <span style={{ fontSize: 13, color: 'var(--text)', flex: 1 }}>{Array.isArray(currentSectors) ? currentSectors.join(', ') : currentSectors}</span>
+                  </div>
+                )}
+                <div style={{ padding: '10px 16px', borderTop: '0.5px solid rgba(0,0,0,0.08)' }}>
+                  <button onClick={startEdit} style={editBtn}>Edit</button>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <div style={{ padding: '14px 16px' }}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ ...labelStyle, display: 'block', marginBottom: 8 }}>Level</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {LEVEL_OPTIONS.map(opt => (
+                  <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={pendingLevel.includes(opt)}
+                      onChange={() => toggleLevel(opt)}
+                      style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 13, color: 'var(--text)' }}>{opt}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Target roles</label>
+              <input
+                value={pendingRoles}
+                onChange={e => setPendingRoles(e.target.value)}
+                placeholder="e.g. Product Manager, Engineering Manager"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Target sectors</label>
+              <input
+                value={pendingSectors}
+                onChange={e => setPendingSectors(e.target.value)}
+                placeholder="e.g. Fintech, Healthcare, SaaS"
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={handleSaveClick} disabled={saving} style={{
+                padding: '9px 20px', borderRadius: 8, border: 'none',
+                background: 'var(--accent)',
+                color: '#fff', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', cursor: 'pointer',
+              }}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button onClick={() => setEditing(false)} style={{
+                padding: '9px 16px', borderRadius: 8, border: 'none',
+                background: 'rgba(0,0,0,0.07)', color: 'var(--text)',
+                fontSize: 14, fontFamily: 'var(--font)', cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showRescoreModal && (
+        <RescoreModal
+          onRescore={async () => {
+            setShowRescoreModal(false)
+            await doSave()
+            await regenerateDimensions()
+            onSaved?.()
+          }}
+          onSaveOnly={async () => {
+            setShowRescoreModal(false)
+            await doSave()
+            onSaved?.()
+          }}
+          onCancel={() => {
+            setShowRescoreModal(false)
+            setEditing(true)
+          }}
+        />
+      )}
+    </>
+  )
+}
+
 const editBtn = {
   padding: '6px 16px', borderRadius: 8, border: 'none',
   background: 'rgba(0,0,0,0.07)', color: 'var(--text)',
@@ -285,6 +468,8 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
   const [savingName, setSavingName] = useState(false)
   const [savedName, setSavedName] = useState(false)
   const [generatingDims, setGeneratingDims] = useState(false)
+  const [showRedoSetup, setShowRedoSetup] = useState(false)
+  const [showRedoRescoreModal, setShowRedoRescoreModal] = useState(false)
   const dimPollRef = useRef(null)
 
   useEffect(() => {
@@ -501,6 +686,8 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
 
       {!loading && <PersonalitySection personality={profile?.personality} />}
 
+      {!loading && <TargetsSection profile={profile} onSaved={onProfileChange} />}
+
       <div style={{ height: 24 }} />
 
       {/* Scoring dimensions section */}
@@ -612,6 +799,45 @@ export default function Profile({ onBack, onGoToSettings, onProfileChange }) {
           <span style={{ color: '#c7c7cc', fontSize: 17 }}>›</span>
         </button>
       </div>
+
+      {/* Redo Setup */}
+      <SectionLabel>Start Over</SectionLabel>
+      <div style={{ background: '#fff', borderTop: '0.5px solid rgba(0,0,0,0.15)', borderBottom: '0.5px solid rgba(0,0,0,0.15)', padding: '14px 16px' }}>
+        <p style={{ fontSize: 12, color: '#8e8e93', margin: '0 0 12px', lineHeight: 1.5 }}>
+          This will regenerate your scoring dimensions and re-score all jobs.
+        </p>
+        <button onClick={() => setShowRedoSetup(true)} style={editBtn}>Redo setup</button>
+      </div>
+
+      {showRedoSetup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, overflowY: 'auto' }}>
+          <div style={{ maxWidth: 600, margin: '40px auto 80px', background: 'var(--screen)', borderRadius: 16, padding: 16, position: 'relative' }}>
+            <button
+              onClick={() => setShowRedoSetup(false)}
+              style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#999', lineHeight: 1 }}
+            >×</button>
+            <Onboarding onComplete={async () => {
+              setShowRedoSetup(false)
+              await incrementProfileVersion()
+              setShowRedoRescoreModal(true)
+              const updated = await fetchProfile()
+              if (updated) setProfile(updated)
+            }} />
+          </div>
+        </div>
+      )}
+
+      {showRedoRescoreModal && (
+        <RescoreModal
+          onRescore={async () => {
+            setShowRedoRescoreModal(false)
+            await regenerateDimensions()
+            onProfileChange?.()
+          }}
+          onSaveOnly={() => setShowRedoRescoreModal(false)}
+          onCancel={() => setShowRedoRescoreModal(false)}
+        />
+      )}
     </div>
   )
 }
