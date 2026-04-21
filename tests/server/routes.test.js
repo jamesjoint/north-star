@@ -975,3 +975,29 @@ describe('GET /api/version', () => {
     expect(res.body).toHaveProperty('whats_new')
   })
 })
+
+describe('PATCH /api/version/whats-new', () => {
+  test('updates whats_new when correct internal key provided', async () => {
+    process.env.INTERNAL_API_KEY = 'test-internal-key'
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/version/whats-new')
+      .set('X-Internal-Key', 'test-internal-key')
+      .send({ whats_new: 'New radar filters landed' })
+    expect(res.status).toBe(200)
+    expect(res.body.ok).toBe(true)
+
+    const check = await request(app).get('/api/version')
+    expect(check.body.whats_new).toBe('New radar filters landed')
+  })
+
+  test('returns 401 with wrong internal key', async () => {
+    process.env.INTERNAL_API_KEY = 'test-internal-key'
+    const app = createApp(pool)
+    const res = await request(app)
+      .patch('/api/version/whats-new')
+      .set('X-Internal-Key', 'wrong-key')
+      .send({ whats_new: 'should fail' })
+    expect(res.status).toBe(401)
+  })
+})

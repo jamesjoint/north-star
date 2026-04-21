@@ -20,6 +20,7 @@ import {
   getProfile, upsertProfileWeights, upsertProfileBackground, upsertProfilePersonality,
   upsertProfileDimensions, seedAdminProfile, upsertProfileName,
   upsertProfileTargetLevel, upsertProfileTargets, incrementProfileVersion,
+  upsertAppVersion, getAppVersion, patchAppVersionWhatsNew,
 } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -31,6 +32,10 @@ export function createApp(pool, pipeline = null) {
 
   // Attach pool to every request so routes can access it
   app.use((req, _res, next) => { req.pool = pool; next() })
+
+  // Upsert current SHA into app_version on boot
+  const currentSha = process.env.RAILWAY_GIT_COMMIT_SHA || 'dev'
+  upsertAppVersion(pool, currentSha).catch(err => console.error('[boot] app_version upsert failed:', err.message))
 
   // Health check — always reachable, no auth
   app.get('/api/health', (_req, res) => res.json({ ok: true }))
@@ -71,6 +76,28 @@ export function createApp(pool, pipeline = null) {
 
   // Public invite routes (redeem) — before requireAuth
   app.use('/api/invites', publicInviteRouter)
+
+  app.get('/api/version', async (req, res) => {
+    try {
+      const version = await getAppVersion(pool)
+      res.json(version)
+    } catch {
+      res.json({ sha: 'unknown', whats_new: null })
+    }
+  })
+
+  app.patch('/api/version/whats-new', async (req, res) => {
+    const internalKey = process.env.INTERNAL_API_KEY
+    if (!internalKey || req.headers['x-internal-key'] !== internalKey) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+    const { whats_new } = req.body
+    if (typeof whats_new !== 'string') {
+      return res.status(400).json({ error: 'whats_new string required' })
+    }
+    await patchAppVersionWhatsNew(pool, whats_new.trim())
+    res.json({ ok: true })
+  })
 
   // All remaining /api/* routes require a valid session
   app.use('/api', requireAuth)
