@@ -222,7 +222,7 @@ export function createApp(pool, pipeline = null) {
     if (req.user.role === 'admin') {
       try {
         const fileProfile = JSON.parse(readFileSync(PROFILE_PATH, 'utf8'))
-        return res.json({ weights: fileProfile.weights, background: fileProfile.background, onboarding_done: false, dimensions: null, first_name: null, last_name: null, target_level: null, target_roles: null, target_sectors: null, profile_version: 1 })
+        return res.json({ weights: fileProfile.weights, background: fileProfile.background, onboarding_done: false, dimensions: null, personality: null, first_name: null, last_name: null, target_level: null, target_roles: null, target_sectors: null, profile_version: 1 })
       } catch { /* fall through */ }
     }
     // New user with no profile yet — send them through onboarding
