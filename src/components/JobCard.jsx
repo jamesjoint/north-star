@@ -36,6 +36,9 @@ export default function JobCard({ job, onSelect, selected, onStatusChange, onDel
       })(),
     ].filter(Boolean)
 
+    const compactStatus = job.status && job.status !== 'none' ? job.status : null
+    const compactStatusStyle = compactStatus ? STATUS_COLORS[compactStatus] : null
+
     return (
       <div
         onClick={() => onSelect?.(job.id)}
@@ -70,11 +73,22 @@ export default function JobCard({ job, onSelect, selected, onStatusChange, onDel
           }}>
             {job.title}
           </div>
-          <div style={{
-            fontSize: 11, color: '#999',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {metaParts.join(' · ')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: 11, color: '#999',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {metaParts.join(' · ')}
+            </span>
+            {compactStatusStyle && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
+                padding: '1px 5px', borderRadius: 4, flexShrink: 0,
+                background: compactStatusStyle.bg, color: compactStatusStyle.color,
+              }}>
+                {compactStatus.toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
       </div>
